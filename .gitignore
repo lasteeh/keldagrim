@@ -7,8 +7,10 @@
 # the framework initializes
 # these will and should be removed
 # after initialization
+/config/*
 /public/*
 !/public/index.php
+
 
 # this is for file storage
 # this should be backed up elsewhere and not in git
