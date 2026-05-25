@@ -1,0 +1,9 @@
+.env
+/.vscode
+
+/public
+/storage
+
+/vendor
+
+!*.gitkeep
