@@ -4,10 +4,10 @@
 /.vscode
 
 # these are temporary for when
-# initializing the framework
-# this will and should be removed
+# the framework initializes
+# these will and should be removed
 # after initialization
-/public
+/public/*
 !/public/index.php
 
 # this is for file storage
@@ -15,7 +15,7 @@
 /storage
 
 # these are dependencies
-# which is and should be managed 
+# which should be managed 
 # by php's composer
 /vendor
 
