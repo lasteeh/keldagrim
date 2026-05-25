@@ -1,9 +1,24 @@
+# important
+# always ignore no matter what
 .env
 /.vscode
 
+# these are temporary for when
+# initializing the framework
+# this will and should be removed
+# after initialization
 /public
+!/public/index.php
+
+# this is for file storage
+# this should be backed up elsewhere and not in git
 /storage
 
+# these are dependencies
+# which is and should be managed 
+# by php's composer
 /vendor
 
+# this keeps directories even if empty 
+# for placeholders' sake
 !*.gitkeep
