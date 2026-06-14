@@ -1,9 +1,9 @@
 <?php
 
-namespace Keldagrim\Exception;
+namespace Keldagrim\Throwable\Exception;
 
 use RuntimeException;
-use Keldagrim\Exception\Interface\KeldagrimException;
+use Keldagrim\Throwable\Exception\Interface\KeldagrimException;
 
 class KeldagrimRuntimeException extends RuntimeException implements KeldagrimException {
   // customize here

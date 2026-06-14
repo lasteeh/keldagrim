@@ -2,7 +2,7 @@
 
 namespace Keldagrim;
 
-use Keldagrim\Exception\Runtime\ConfigException;
+use Keldagrim\Throwable\Exception\Runtime\ConfigException;
 
 class Config {
   private static ?Config $instance = null;
@@ -11,8 +11,8 @@ class Config {
   public const CONFIG_DIR = 'config/';
   public const INDEX = '/public/index.php';
   
-  private const APPLICATION_CONFIG_FILE = 'application.php';
-  private const ROUTES_CONFIG_FILE = 'routes.php';
+  public const APP_CONFIG_FILE = 'app.php';
+  public const ROUTES_CONFIG_FILE = 'routes.php';
 
   private static string $HOME_DIR;
   private static string $HOME_URL;
@@ -38,7 +38,7 @@ class Config {
   }
 
   private function set_home_url(): void {
-    $env_home_url = self::get('application.url', null);
+    $env_home_url = self::get(basename(self::APP_CONFIG_FILE, '.php') . '.url', null);
     if (!empty($env_home_url)) {
       self::$HOME_URL = $env_home_url;
       return;
@@ -86,10 +86,10 @@ class Config {
 
   private function load_application_config(): void {
     $application_config = self::HOME_DIR() . DIRECTORY_SEPARATOR . self::CONFIG_DIR .
-      DIRECTORY_SEPARATOR . self::APPLICATION_CONFIG_FILE; 
-    if (!file_exists($application_config)) throw new ConfigException('"application.php" is missing.');
+      DIRECTORY_SEPARATOR . self::APP_CONFIG_FILE; 
+    if (!file_exists($application_config)) throw new ConfigException(self::APP_CONFIG_FILE . ' is missing.');
 
-    self::$settings[basename(self::APPLICATION_CONFIG_FILE, '.php')] = include($application_config);
+    self::$settings[basename(self::APP_CONFIG_FILE, '.php')] = include($application_config);
   }
 
   private function load_other_config(): void {
@@ -103,7 +103,7 @@ class Config {
       $file_name = basename($config_file, '.php');
 
       if (
-        $base_name === self::APPLICATION_CONFIG_FILE ||
+        $base_name === self::APP_CONFIG_FILE ||
         $base_name === self::ROUTES_CONFIG_FILE 
       ) continue;
      
@@ -117,7 +117,7 @@ class Config {
   private function load_routes(): void {
     $route_config = self::HOME_DIR() . DIRECTORY_SEPARATOR . self::CONFIG_DIR . 
       DIRECTORY_SEPARATOR . self::ROUTES_CONFIG_FILE; 
-    if (!file_exists($route_config)) throw new ConfigException('"routes.php" is missing.');
+    if (!file_exists($route_config)) throw new ConfigException(self::ROUTES_CONFIG_FILE . ' is missing.');
 
     require_once($route_config); 
   }

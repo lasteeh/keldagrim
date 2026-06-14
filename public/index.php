@@ -3,7 +3,7 @@
 require_once __DIR__ . '/../keldagrim/Autoloader.php';
 Autoloader::init();
 
-use Keldagrim\Application;
+use Keldagrim\App;
 
-$app = new Application;
+$app = new App;
 $app->run();
