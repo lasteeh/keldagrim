@@ -4,22 +4,17 @@ namespace Keldagrim;
 
 use Keldagrim\Throwable\ErrorHandler;
 
-class App {
-  final public function __construct() {
-
-    ob_start();
-    session_start();
+final class App {
+  public function __construct() {
 
     ErrorHandler::init();    
     Config::init();
 
-    Test::init();
   }
 
-  final public function run(): void {
-    echo "run"; 
+  public function run(): void {
 
+    session_start();
 
-    ob_end_flush();
   }
 }

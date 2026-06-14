@@ -7,6 +7,7 @@ use ErrorException;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Keldagrim\Config;
+use Keldagrim\CLI\StandardOutput;
 
 final class ErrorHandler {
   private function __construct() {
@@ -29,7 +30,18 @@ final class ErrorHandler {
   }
 
   public static function handle_shutdown(): void {
-    // wip
+    $error = error_get_last();
+    if (empty($error) || !self::is_fatal($error['type'])) return;
+
+    self::process(
+      new ErrorException(
+        $error['message'],
+        0,
+        $error['type'],
+        $error['file'],
+        $error['line'],
+      )
+    );
   }
 
   private static function process(Throwable $e): void {
@@ -43,7 +55,9 @@ final class ErrorHandler {
       FILTER_VALIDATE_BOOL
     );
 
-    ob_clean();
+    while (ob_get_level() > 0) {
+      ob_end_clean();
+    }
 
     if ($is_cli) {
       self::render_cli($e, $is_debug);
@@ -63,15 +77,15 @@ final class ErrorHandler {
   }
 
   private static function render_cli(Throwable $e, bool $is_debug) {
-    fwrite(STDERR, '\n' . self::timestamp() . ' [ERROR] '. $e->getMessage() .' \n');
+    StandardOutput::write('error', $e->getMessage());
     
     if ($is_debug) {
-      fwrite(STDERR, 'File: ' . $e->getFile() . '\n');
-      fwrite(STDERR, 'Line: ' . $e->getLine() . '\n');
-      fwrite(STDERR, 'Trace: ' . $e->getTraceAsString() . '\n');
+      StandardOutput::write('',  $e->getFile() . '(' . $e->getLine() . ')');
+      StandardOutput::write('', PHP_EOL);
+      StandardOutput::write('', 'Trace: ' . PHP_EOL . $e->getTraceAsString() . PHP_EOL);
     }
 
-    fwrite(STDERR, '\n');
+    StandardOutput::write('', PHP_EOL);
     exit(1);
   }
 
