@@ -9,10 +9,12 @@ class Config {
 
   public const FRAMEWORK_CORE_DIR = 'keldagrim/';
   public const CONFIG_DIR = 'config/';
+  public const PUBLIC_DIR = 'public/';
   public const INDEX = '/public/index.php';
   
   public const APP_CONFIG_FILE = 'app.php';
   public const ROUTES_CONFIG_FILE = 'routes.php';
+  public const SERVER_CONFIG_FILE = 'server.php';
 
   private static string $HOME_DIR;
   private static string $HOME_URL;
