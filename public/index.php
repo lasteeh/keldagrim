@@ -5,9 +5,5 @@ Autoloader::init();
 
 use Keldagrim\App;
 
-ob_start();
-
 $app = new App;
 $app->run();
-
-ob_end_flush();

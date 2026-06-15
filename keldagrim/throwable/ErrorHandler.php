@@ -15,6 +15,8 @@ final class ErrorHandler {
   }
 
   public static function init(): void {
+    ob_start();
+
     set_exception_handler([self::class, 'handle_exception']);
     set_error_handler([self::class, 'handle_error']);
     register_shutdown_function([self::class, 'handle_shutdown']);
@@ -64,6 +66,8 @@ final class ErrorHandler {
     } else {
       self::render_http($e, $is_debug);
     }
+
+    exit(1);
   }
 
   private static function is_fatal(int $type): bool {
@@ -222,9 +226,5 @@ final class ErrorHandler {
     }
 
     echo $html;
-  }
-
-  private static function timestamp(): string {
-    return (new DateTimeImmutable())->format(DateTimeInterface::ATOM);
   }
 }

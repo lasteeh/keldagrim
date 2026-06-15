@@ -7,14 +7,14 @@ use Keldagrim\Throwable\Exception\Runtime\ConfigException;
 class Config {
   private static ?Config $instance = null;
 
-  public const FRAMEWORK_CORE_DIR = 'keldagrim/';
-  public const CONFIG_DIR = 'config/';
-  public const PUBLIC_DIR = 'public/';
-  public const INDEX = '/public/index.php';
+  public const FRAMEWORK_CORE_DIR = 'keldagrim';
+  public const CONFIG_DIR = 'config';
+  public const PUBLIC_DIR = 'public';
   
   public const APP_CONFIG_FILE = 'app.php';
   public const ROUTES_CONFIG_FILE = 'routes.php';
   public const SERVER_CONFIG_FILE = 'server.php';
+  public const INDEX_FILE = 'index.php';
 
   private static string $HOME_DIR;
   private static string $HOME_URL;
@@ -35,21 +35,21 @@ class Config {
   }
 
   private function set_home_dir(): void {
-    $framework_core_dir = str_replace('/', DIRECTORY_SEPARATOR, self::FRAMEWORK_CORE_DIR);
+    $framework_core_dir = self::FRAMEWORK_CORE_DIR . DIRECTORY_SEPARATOR;
     self::$HOME_DIR = str_replace($framework_core_dir, "", __DIR__); 
   }
 
   private function set_home_url(): void {
     $env_home_url = self::get(basename(self::APP_CONFIG_FILE, '.php') . '.url', null);
     if (!empty($env_home_url)) {
-      self::$HOME_URL = $env_home_url;
+      self::$HOME_URL = rtrim($env_home_url, '/');
       return;
     } 
 
     $force_https = filter_var($_ENV['FORCE_HTTPS'] ?? false, FILTER_VALIDATE_BOOL);
     $request_scheme = ($force_https === true) ? 'https' : ($_SERVER['REQUEST_SCHEME'] ?? 'http');
     $http_host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $home_path = str_replace(self::INDEX, '', ($_SERVER['SCRIPT_NAME'] ?? '')); 
+    $home_path = rtrim(str_replace(self::INDEX_FILE, '', ($_SERVER['SCRIPT_NAME'] ?? '')), '/'); 
 
     self::$HOME_URL = $request_scheme . '://' . $http_host . $home_path;
   }

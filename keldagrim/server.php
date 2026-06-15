@@ -18,4 +18,7 @@ if (
   !is_dir($static_file)
   ) return false;
 
-require_once Config::HOME_DIR() . Config::INDEX;
+require_once 
+  Config::HOME_DIR() . DIRECTORY_SEPARATOR . 
+  Config::PUBLIC_DIR . DIRECTORY_SEPARATOR . 
+  Config::INDEX_FILE;

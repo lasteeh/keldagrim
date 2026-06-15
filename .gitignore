@@ -10,7 +10,7 @@
 /config/*
 /public/*
 !/public/index.php
-
+/app/*
 
 # this is for file storage
 # this should be backed up elsewhere and not in git

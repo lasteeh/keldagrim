@@ -26,7 +26,8 @@ final class Oracle {
         $host = $opts->get('host', 'localhost');
         $port = $opts->get('port', '6789');
         $server_dir = 
-          Config::HOME_DIR() . DIRECTORY_SEPARATOR . Config::PUBLIC_DIR; 
+          Config::HOME_DIR() . DIRECTORY_SEPARATOR . 
+          Config::PUBLIC_DIR . DIRECTORY_SEPARATOR; 
         $server_file = 
           Config::HOME_DIR() . DIRECTORY_SEPARATOR . 
           Config::FRAMEWORK_CORE_DIR . DIRECTORY_SEPARATOR .
