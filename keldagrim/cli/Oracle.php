@@ -24,7 +24,7 @@ final class Oracle {
     switch ($command) {
       case 'server':
         $host = $opts->get('host', 'localhost');
-        $port = $opts->get('port', '6543');
+        $port = $opts->get('port', '6789');
         $server_dir = 
           Config::HOME_DIR() . DIRECTORY_SEPARATOR . Config::PUBLIC_DIR; 
         $server_file = 
