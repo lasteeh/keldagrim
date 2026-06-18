@@ -27,7 +27,7 @@ final class App {
   private function resolve(Request $request): void {
     $action = $request->action;
 
-    if ($action instanceof Closure) { $action(); return; }    
+    if ($action instanceof Closure) { $action($request); return; }    
 
     if (is_array($action) && count($action) === 2) {
       [$class, $method] = $action;
@@ -39,7 +39,7 @@ final class App {
         throw new RouteException("Method [{$method}] not found on [{$class}]");
 
       $controller = new $class($request);
-      $controller->execute($method);
+      $controller->execute($method, $request);
 
       return;
     }

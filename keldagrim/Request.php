@@ -9,7 +9,7 @@ final class Request {
   public readonly string $uri;
   public readonly string $method;
   public readonly Closure|array|null $action;
-  public readonly array $params;
+  public readonly array $route_params;
 
   private function __construct() {}
 
@@ -38,14 +38,14 @@ final class Request {
       $pattern = $route['pattern'] ?? '';
       if (!preg_match($pattern, $request->uri, $matches)) continue;
 
-      $params = array_filter(
+      $route_params = array_filter(
         $matches,
         fn($key) => is_string($key),
         ARRAY_FILTER_USE_KEY
       );
 
       $request->action = $route['action'] ?? null;
-      $request->params = $params;
+      $request->route_params = $route_params;
 
       $match_found = true;
       break;

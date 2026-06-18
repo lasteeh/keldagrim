@@ -49,7 +49,22 @@ class Config {
     $force_https = filter_var($_ENV['FORCE_HTTPS'] ?? false, FILTER_VALIDATE_BOOL);
     $request_scheme = ($force_https === true) ? 'https' : ($_SERVER['REQUEST_SCHEME'] ?? 'http');
     $http_host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $home_path = rtrim(str_replace(self::INDEX_FILE, '', ($_SERVER['SCRIPT_NAME'] ?? '')), '/'); 
+
+    $script_name = $_SERVER['SCRIPT_NAME'] ?? '';
+    $public_dir = self::PUBLIC_DIR . '/';
+
+    $pos = strpos($script_name, $public_dir);
+    $home_path = $pos !== false
+      ? substr_replace($script_name, '', $pos, strlen($public_dir))
+      : $script_name;
+
+    $pos = strpos($home_path, self::INDEX_FILE);
+    $home_path = rtrim(
+      $pos !== false
+        ? substr_replace($home_path, '', $pos, strlen(self::INDEX_FILE))
+        : $home_path,
+      '/'
+    ); 
 
     self::$HOME_URL = $request_scheme . '://' . $http_host . $home_path;
   }

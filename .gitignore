@@ -11,6 +11,7 @@
 /public/*
 !/public/index.php
 /app/*
+.htaccess
 
 # this is for file storage
 # this should be backed up elsewhere and not in git
