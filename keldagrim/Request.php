@@ -26,7 +26,7 @@ final class Request {
 
     $request->method = strtoupper($_SERVER['REQUEST_METHOD'] ?? '');
 
-    $routes_map = Route::fetch_all([$request->method]);
+    $routes_map = Route::all([$request->method]);
     $routes = $routes_map[$request->method] ?? [];
     if (empty($routes)) 
       throw new RouteException("No route matches [{$request->method}] \"{$request->uri}\"");
