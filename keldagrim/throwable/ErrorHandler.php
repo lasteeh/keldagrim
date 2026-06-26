@@ -4,8 +4,6 @@ namespace Keldagrim\Throwable;
 
 use Throwable;
 use ErrorException;
-use DateTimeImmutable;
-use DateTimeInterface;
 use Keldagrim\Config;
 use Keldagrim\CLI\StandardOutput;
 
@@ -90,7 +88,6 @@ final class ErrorHandler {
     }
 
     StandardOutput::write('', PHP_EOL);
-    exit(1);
   }
 
   private static function render_http(Throwable $e, bool $is_debug) {
