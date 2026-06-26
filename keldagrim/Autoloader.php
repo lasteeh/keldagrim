@@ -3,6 +3,8 @@
 class Autoloader {
   private const FRAMEWORK_NAME = 'keldagrim';
 
+  private function __construct() {}
+
 	public static function init() {
 		spl_autoload_register([__CLASS__, 'autoload']);
 	}
