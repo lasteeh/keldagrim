@@ -4,11 +4,13 @@ namespace Keldagrim\CLI;
 
 // we build customr cli parser
 // to follow format php <script_name> <command> <--option=value>
-final class OptionsParser {
-  private ?array $options = null;
+final class OptionsParser
+{
   private ?string $command = null;
+  private array $options = [];
 
-  public function __construct(array $args) {
+  public function __construct(array $args)
+  {
     $this->command = $args[1] ?? null;
 
     foreach (array_slice($args, 2) as $arg) {
@@ -18,15 +20,18 @@ final class OptionsParser {
     }
   }
 
-  public function command(): string {
+  public function command(): ?string
+  {
     return $this->command;
   }
 
-  public function has(string $key): bool {
+  public function has(string $key): bool
+  {
     return isset($this->options[$key]);
-  } 
+  }
 
-  public function get(string $key, mixed $default = null): mixed {
+  public function get(string $key, ?string $default = null): ?string
+  {
     return $this->options[$key] ?? $default;
   }
 }
