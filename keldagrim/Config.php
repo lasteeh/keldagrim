@@ -35,8 +35,10 @@ class Config {
   }
 
   private function set_home_dir(): void {
-    $framework_core_dir = self::FRAMEWORK_CORE_DIR . DIRECTORY_SEPARATOR;
-    self::$HOME_DIR = str_replace($framework_core_dir, "", __DIR__); 
+    $pos = strpos(__DIR__, self::FRAMEWORK_CORE_DIR);
+    self::$HOME_DIR = ($pos === false) 
+      ? __DIR__ 
+      : realpath(substr_replace(__DIR__, '', $pos, strlen(self::FRAMEWORK_CORE_DIR))); 
   }
 
   private function set_home_url(): void {
