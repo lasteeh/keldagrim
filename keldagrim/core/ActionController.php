@@ -1,12 +1,13 @@
-<?php 
+<?php
 
-namespace Keldagrim;
+namespace Keldagrim\Core;
 
 use Keldagrim\Throwable\Exception\Logic\ActionControllerException as LogicException;
-use Keldagrim\Request;
-use Keldagrim\Response\HTMLResponse;
+use Keldagrim\Core\Request;
+use Keldagrim\Core\Response\HTMLResponse;
 
-abstract class ActionController {
+abstract class ActionController
+{
   protected static array $skip_before_action = [];
   protected static array $before_action = [];
   protected static array $skip_after_action = [];
@@ -14,19 +15,21 @@ abstract class ActionController {
 
   private Request $request;
 
-  public function __construct(Request $request) {
+  public function __construct(Request $request)
+  {
     $this->request = $request;
 
     $this->setup_filter('before_action');
     $this->setup_filter('skip_before_action');
     $this->setup_filter('after_action');
-    $this->setup_filter('skip_after_action');  
+    $this->setup_filter('skip_after_action');
   }
 
-  public function execute(string $method, Request $request): void {
+  public function execute(string $method, Request $request): void
+  {
     $class = static::class;
 
-    if (!method_exists($this, $method)) 
+    if (!method_exists($this, $method))
       throw new LogicException("Method [{$method}] not found on [{$class}]");
 
     $before_filters = static::$before_action;
@@ -44,7 +47,7 @@ abstract class ActionController {
       }
     }
 
-    $response = $this->{$method}($request);   
+    $response = $this->{$method}($request);
 
     $after_filters = static::$after_action;
     $skip_after_filters = static::$skip_after_action;
@@ -65,25 +68,30 @@ abstract class ActionController {
     /* $this->clear_flash(); */
 
     if (empty($response)) return;
-    if ($response instanceof Response) { $response->send(); return; } // wip if return $response->send() produce error and shutdown, FIX
+    if ($response instanceof Response) {
+      $response->send();
+      return;
+    } // wip if return $response->send() produce error and shutdown, FIX
   }
 
-  private function filter_should_skip(array $skip_filters, string $filter, string $method): bool {
+  private function filter_should_skip(array $skip_filters, string $filter, string $method): bool
+  {
     if (!isset($skip_filters[$filter])) return false;
-    
+
     $should_skip = $skip_filters[$filter] ?? null;
-    if (!is_array($should_skip) || empty($should_skip)) return true; 
+    if (!is_array($should_skip) || empty($should_skip)) return true;
 
     $should_skip_only = $should_skip['only'] ?? null;
     if (is_array($should_skip_only)) return in_array($method, $should_skip_only, true);
-    
+
     $should_skip_except = $should_skip['except'] ?? null;
-    if (is_array($should_skip_except)) return !in_array($method, $should_skip_except, true); 
+    if (is_array($should_skip_except)) return !in_array($method, $should_skip_except, true);
 
     return false;
   }
 
-  private function filter_should_apply(string $method, array $options = []): bool {
+  private function filter_should_apply(string $method, array $options = []): bool
+  {
     if (empty($options)) return true;
 
     $options_only = $options['only'] ?? null;
@@ -95,7 +103,8 @@ abstract class ActionController {
     return false;
   }
 
-  private function setup_filter(string $filter_name) {
+  private function setup_filter(string $filter_name)
+  {
     $all_filters = [];
     $class = static::class;
 
@@ -115,10 +124,10 @@ abstract class ActionController {
   }
 
   protected function html(
-    string $view = '', 
-    array $with = [], 
-    int $status = 200, 
-    string $layout = '', 
+    string $view = '',
+    array $with = [],
+    int $status = 200,
+    string $layout = '',
     array $flash = []
   ): HTMLResponse {
     $request_action = $this->request?->action ?? [];
@@ -127,7 +136,7 @@ abstract class ActionController {
 
     if (
       empty($request_action) ||
-      !is_array($request_action) || 
+      !is_array($request_action) ||
       count($request_action) !== 2 ||
       !is_subclass_of($request_controller, self::class) ||
       !method_exists($request_controller, $request_method)

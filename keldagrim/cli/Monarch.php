@@ -3,7 +3,7 @@
 namespace Keldagrim\CLI;
 
 use Keldagrim\Throwable\ErrorHandler;
-use Keldagrim\Config;
+use Keldagrim\Core\Config;
 use Keldagrim\Throwable\Exception\KeldagrimRuntimeException;
 use Keldagrim\Throwable\Exception\KeldagrimInvalidArgumentException;
 use Keldagrim\CLI\OptionsParser;
@@ -13,8 +13,11 @@ use RecursiveCallbackFilterIterator;
 use RecursiveIteratorIterator;
 
 /* TODO: test update */
-final class Monarch {
-  public function __construct() {
+
+final class Monarch
+{
+  public function __construct()
+  {
     ErrorHandler::init();
     Config::init();
 
@@ -22,7 +25,8 @@ final class Monarch {
       throw new KeldagrimRuntimeException('CLI environment required.');
   }
 
-  public function run(array $args): void {
+  public function run(array $args): void
+  {
     $opts = new OptionsParser($args);
     $command = $opts->command();
 
@@ -36,7 +40,7 @@ final class Monarch {
         }
 
         if (!filter_var($download_link, FILTER_VALIDATE_URL)) {
-          StandardOutput::write('', 'monarch:'); 
+          StandardOutput::write('', 'monarch:');
           StandardOutput::write('', 'Invalid url.');
           exit(1);
         }
@@ -44,7 +48,7 @@ final class Monarch {
         $ch = curl_init($download_link);
         curl_setopt_array($ch, [
           CURLOPT_NOBODY => true,          // HEAD request equivalent
-          CURLOPT_FOLLOWLOCATION => true, 
+          CURLOPT_FOLLOWLOCATION => true,
           CURLOPT_MAXREDIRS => 5,
           CURLOPT_TIMEOUT => 5,
           CURLOPT_RETURNTRANSFER => true,
@@ -82,7 +86,7 @@ final class Monarch {
 
         if (is_dir($extraction_path)) {
           StandardOutput::write('', 'Clearing out temporary update directory...');
-          $this->delete_dir($extraction_path); 
+          $this->delete_dir($extraction_path);
         }
 
         if (file_exists($save_path)) {
@@ -130,7 +134,7 @@ final class Monarch {
           StandardOutput::write('', 'Update aborted.');
           exit(1);
         }
-        
+
         $version_filepath = $update_source . $version_filename;
         if (!file_exists($version_filepath)) {
           StandardOutput::write('', 'Unable to find update version. Aborting...');
@@ -139,7 +143,7 @@ final class Monarch {
           if (file_exists($save_path)) $this->delete_file($save_path);
           StandardOutput::write('', 'Update aborted.');
           exit(1);
-        }       
+        }
 
         $version_content = file_get_contents($version_filepath);
         preg_match('/\b(\d+\.\d+\.\d+)\b/', $version_content, $matches);
@@ -156,7 +160,7 @@ final class Monarch {
         $current_version_content = file_get_contents(Config::HOME_DIR() . DIRECTORY_SEPARATOR . $version_filename);
         preg_match('/\b(\d+\.\d+\.\d+)\b/', $current_version_content, $matches);
         $current_version = $matches[1] ?? '0.0.0';
-        
+
         $confirmation = readline("Update {$current_version} to {$downloaded_version}. Continue? Y/n: ");
         if (strtolower($confirmation) !== 'y') {
           StandardOutput::write('', 'Aborting...');
@@ -171,9 +175,9 @@ final class Monarch {
         $exclude = ['.gitignore'];
         $this->copy_dir($update_source, Config::HOME_DIR(), $exclude);
         $this->sync_delete_removed_files(
-          $update_source . 'keldagrim', 
+          $update_source . 'keldagrim',
           Config::HOME_DIR() . DIRECTORY_SEPARATOR . 'keldagrim'
-        ); 
+        );
 
         StandardOutput::write('', 'Cleaning up temporary files...');
         if (is_dir($extraction_path)) $this->delete_dir($extraction_path);
@@ -187,19 +191,21 @@ final class Monarch {
     }
   }
 
-  private function delete_file(string $path): void {
+  private function delete_file(string $path): void
+  {
     if (!is_link($path) && !is_file($path))
       throw new KeldagrimInvalidArgumentException('File deletion failed. Invalid file path: ' . $path);
 
     if (!unlink($path)) {
       $last_error = error_get_last();
       $error_message = !empty($last_error) ? $last_error['message'] : 'Unkown system error?';
-      throw new KeldagrimRuntimeException("Failed to delete \"{$path}\": {$error_message}"); 
+      throw new KeldagrimRuntimeException("Failed to delete \"{$path}\": {$error_message}");
     }
   }
 
-  private function delete_dir(string $path): void {
-    if (!is_dir($path)) 
+  private function delete_dir(string $path): void
+  {
+    if (!is_dir($path))
       throw new KeldagrimInvalidArgumentException('Directory deletion failed. Directory does not exist: ' . $path);
 
     $files = scandir($path);
@@ -224,7 +230,8 @@ final class Monarch {
     }
   }
 
-  private function copy_dir(string $source, string $destination, array $exclude = []): void {
+  private function copy_dir(string $source, string $destination, array $exclude = []): void
+  {
     if (!is_dir($source))
       throw new KeldagrimInvalidArgumentException('Unable to find directory: ' . $source);
     if (!is_dir($destination)) mkdir($destination, 0755, true);
@@ -253,10 +260,11 @@ final class Monarch {
     closedir($directory);
   }
 
-  private function find_file_dir(string $directory, string $filename, array $exclude = []): ?string {
+  private function find_file_dir(string $directory, string $filename, array $exclude = []): ?string
+  {
     $directory_iterator = new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS);
     $filter_iterator = new RecursiveCallbackFilterIterator(
-      $directory_iterator, 
+      $directory_iterator,
       function ($file, $key, $iterator) use ($exclude) {
         if ($file->isDir() && in_array($file->getFilename(), $exclude))
           return false;
@@ -274,7 +282,8 @@ final class Monarch {
     return null;
   }
 
-  private function sync_delete_removed_files(string $source, string $destination, array $exclude = []): void {
+  private function sync_delete_removed_files(string $source, string $destination, array $exclude = []): void
+  {
     if (!is_dir($destination)) return;
 
     $directory = opendir($destination);
@@ -289,7 +298,7 @@ final class Monarch {
 
       if (is_dir($destination_file)) {
         if (!is_dir($source_file)) {
-          StandardOutput::write('','Removing obsolete directory: ' . $relative_path);
+          StandardOutput::write('', 'Removing obsolete directory: ' . $relative_path);
           $this->delete_dir($destination_file);
         } else {
           $this->sync_delete_removed_files($source_file, $destination_file, $exclude);

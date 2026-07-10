@@ -1,20 +1,22 @@
 <?php
 
-namespace Keldagrim;
+namespace Keldagrim\Core;
 
 use Keldagrim\Throwable\Exception\Logic\RouteException;
-use Keldagrim\Config;
+use Keldagrim\Core\Config;
 
-final class Route {
+final class Route
+{
   public readonly string $path;
   public readonly string $url;
   public readonly string $name;
   public readonly array $params;
-  
+
   private static array $routes = [];
   private static array $routes_by_name = [];
 
-  private function __construct(string $path, string $name, array $params = []) {
+  private function __construct(string $path, string $name, array $params = [])
+  {
     $this->path = $path;
     $this->name = $name;
     $this->params = $params;
@@ -34,13 +36,14 @@ final class Route {
    * @param array $methods Optional list of HTTP methods to filter by
    * @return array Array of registered route definitions grouped by method
    */
-  public static function all(array $methods = []): array {
+  public static function all(array $methods = []): array
+  {
     if (empty($methods)) return self::$routes;
 
     $routes = [];
     foreach ($methods as $method) {
       if (!isset(self::$routes[$method])) continue;
-      
+
       usort(self::$routes[$method], fn($a, $b) => $b['score'] <=> $a['score']);
       $routes[$method] = self::$routes[$method];
     }
@@ -63,8 +66,9 @@ final class Route {
    * @return string Fully resolved path (no domain, no scheme)
    * @throws RouteException If route is not defined or required parameters are missing
    */
-  public static function path(string $name, array $route_params = []): string {
-    return (Route::fetch($name, $route_params))->path; 
+  public static function path(string $name, array $route_params = []): string
+  {
+    return (Route::fetch($name, $route_params))->path;
   }
 
   /**
@@ -81,9 +85,10 @@ final class Route {
    * @param array $route_params Key-value pairs for route parameters
    * @return string Fully resolved URL
    * @throws RouteException If route is not defined or required parameters are missing
-   */ 
-  public static function url(string $name, array $route_params = []): string {
-    return (Route::fetch($name, $route_params))->url; 
+   */
+  public static function url(string $name, array $route_params = []): string
+  {
+    return (Route::fetch($name, $route_params))->url;
   }
 
   /**
@@ -111,7 +116,8 @@ final class Route {
    * @throws RouteException If route is not found, required params are missing,
    *                        or unresolved parameters remain after generation
    */
-  public static function fetch(string $name, array $route_params = []): self {
+  public static function fetch(string $name, array $route_params = []): self
+  {
     if (!isset(self::$routes_by_name[$name])) throw new RouteException("Route [{$name}] not defined");
 
     $route = self::$routes_by_name[$name] ?? null;
@@ -127,10 +133,10 @@ final class Route {
       static function ($matches) use ($route_params) {
         $param = $matches[1];
         $modifier = $matches[2] ?? null;
-        
-        if (!array_key_exists($param, $route_params)) 
+
+        if (!array_key_exists($param, $route_params))
           return $modifier === '?' ? '' : $matches[0];
-        
+
         $value = (string) $route_params[$param];
 
         return $modifier === '*' ? $value : rawurlencode($value);
@@ -160,8 +166,9 @@ final class Route {
    * @param string $name Optional route name for URL generation
    * @return void
    */
-  public static function get(string $path, array|callable $action, string $name = ''): void {
-    self::add_route(['GET','HEAD'], $path, $action, $name);
+  public static function get(string $path, array|callable $action, string $name = ''): void
+  {
+    self::add_route(['GET', 'HEAD'], $path, $action, $name);
   }
 
   /**
@@ -175,7 +182,8 @@ final class Route {
    * @param string $name Optional route name for URL generation
    * @return void
    */
-  public static function post(string $path, array|callable $action, string $name = ''): void {
+  public static function post(string $path, array|callable $action, string $name = ''): void
+  {
     self::add_route('POST', $path, $action, $name);
   }
 
@@ -187,7 +195,8 @@ final class Route {
    * @param string $name Optional route name
    * @return void
    */
-  public static function put(string $path, array|callable $action, string $name = ''): void {
+  public static function put(string $path, array|callable $action, string $name = ''): void
+  {
     self::add_route('PUT', $path, $action, $name);
   }
 
@@ -199,7 +208,8 @@ final class Route {
    * @param string $name Optional route name
    * @return void
    */
-  public static function patch(string $path, array|callable $action, string $name = ''): void {
+  public static function patch(string $path, array|callable $action, string $name = ''): void
+  {
     self::add_route('PATCH', $path, $action, $name);
   }
 
@@ -210,19 +220,21 @@ final class Route {
    * @param array|callable $action Controller action or callable handler
    * @param string $name Optional route name
    * @return void
-   */ 
-  public static function delete(string $path, array|callable $action, string $name = ''): void {
+   */
+  public static function delete(string $path, array|callable $action, string $name = ''): void
+  {
     self::add_route('DELETE', $path, $action, $name);
   }
 
-  private static function add_route(array|string $methods, string $path, array|callable $action, string $name = ''): void {
+  private static function add_route(array|string $methods, string $path, array|callable $action, string $name = ''): void
+  {
     $pattern = self::compile($path);
     $score = self::priority_score($path);
     $params = self::extract_params($path);
 
     if (is_array($methods)) {
-      foreach($methods as $method) {
-        self::$routes[$method] [] = [
+      foreach ($methods as $method) {
+        self::$routes[$method][] = [
           'path' => $path,
           'action' => $action,
           'pattern' => $pattern,
@@ -232,12 +244,12 @@ final class Route {
       }
     } else {
       self::$routes[$methods][] = [
-          'path' => $path,
-          'action' => $action,
-          'pattern' => $pattern,
-          'score' => $score,
-          'params' => $params,
-        ];
+        'path' => $path,
+        'action' => $action,
+        'pattern' => $pattern,
+        'score' => $score,
+        'params' => $params,
+      ];
     }
 
     if (empty($name)) return;
@@ -247,7 +259,8 @@ final class Route {
     ];
   }
 
-  private static function compile(string $path): string {
+  private static function compile(string $path): string
+  {
     $pattern = $path;
 
     // wildcard: :slug* including slashes
@@ -274,42 +287,53 @@ final class Route {
     return '#^' . $pattern . '$#';
   }
 
-  private static function priority_score(string $path): int {
+  private static function priority_score(string $path): int
+  {
     $score = 0;
 
     $segments = explode('/', trim($path, '/'));
     foreach ($segments as $segment) {
       if ($segment === '') continue;
-      if (str_ends_with($segment, '*')) { $score += 1; continue; }
-      if (str_ends_with($segment, '?')) { $score += 5; continue; }
-      if (str_starts_with($segment, ':')) { $score += 10; continue; }
+      if (str_ends_with($segment, '*')) {
+        $score += 1;
+        continue;
+      }
+      if (str_ends_with($segment, '?')) {
+        $score += 5;
+        continue;
+      }
+      if (str_starts_with($segment, ':')) {
+        $score += 10;
+        continue;
+      }
       $score += 20;
     }
 
     return $score;
-  } 
+  }
 
-  private static function extract_params(string $path): array {
+  private static function extract_params(string $path): array
+  {
     $params = [];
 
     // required: :id    
     preg_match_all('/\:(\w+)(?!\?|\*)/', $path, $matches);
     foreach ($matches[1] as $name) {
-        $params[$name] = 'required';
+      $params[$name] = 'required';
     }
 
     // optional: :id?
     preg_match_all('/\:(\w+)\?/', $path, $matches);
     foreach ($matches[1] as $name) {
-        $params[$name] = 'optional';
+      $params[$name] = 'optional';
     }
 
     // wildcard: :slug*
     preg_match_all('/\:(\w+)\*/', $path, $matches);
     foreach ($matches[1] as $name) {
-        $params[$name] = 'wildcard';
+      $params[$name] = 'wildcard';
     }
 
-    return $params; 
+    return $params;
   }
 }

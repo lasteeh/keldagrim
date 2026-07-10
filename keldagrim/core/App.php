@@ -1,33 +1,38 @@
 <?php
 
-namespace Keldagrim;
+namespace Keldagrim\Core;
 
 use Keldagrim\Throwable\ErrorHandler;
-use Keldagrim\Request;
+use Keldagrim\Core\Request;
 use Closure;
 use Keldagrim\Throwable\Exception\Logic\RouteException;
 
-final class App {
-  public function __construct() {
+final class App
+{
+  public function __construct()
+  {
 
-    ErrorHandler::init();    
+    ErrorHandler::init();
     Config::init();
-
   }
 
-  public function run(): void {
+  public function run(): void
+  {
 
     if (session_status() === PHP_SESSION_NONE) session_start();
 
     $request = Request::capture();
     $this->resolve($request);
-
   }
 
-  private function resolve(Request $request): void {
+  private function resolve(Request $request): void
+  {
     $action = $request->action;
 
-    if ($action instanceof Closure) { $action($request); return; }    
+    if ($action instanceof Closure) {
+      $action($request);
+      return;
+    }
 
     if (is_array($action) && count($action) === 2) {
       [$class, $method] = $action;

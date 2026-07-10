@@ -3,21 +3,24 @@
 namespace Keldagrim\CLI;
 
 use Keldagrim\Throwable\ErrorHandler;
-use Keldagrim\Config;
+use Keldagrim\Core\Config;
 use Keldagrim\Throwable\Exception\KeldagrimRuntimeException;
 use Keldagrim\CLI\StandardOutput;
 use Keldagrim\CLI\OptionsParser;
 
-final class Oracle {
-  public function __construct() {
+final class Oracle
+{
+  public function __construct()
+  {
     ErrorHandler::init();
     Config::init();
 
-    if (PHP_SAPI !== 'cli') 
+    if (PHP_SAPI !== 'cli')
       throw new KeldagrimRuntimeException('CLI environment required.');
   }
 
-  public function run(array $args): void {
+  public function run(array $args): void
+  {
     $opts = new OptionsParser($args);
     $command = $opts->command();
 
@@ -25,16 +28,16 @@ final class Oracle {
       case 'server':
         $host = $opts->get('host', 'localhost');
         $port = $opts->get('port', '6789');
-        $server_dir = 
-          Config::HOME_DIR() . DIRECTORY_SEPARATOR . 
-          Config::PUBLIC_DIR . DIRECTORY_SEPARATOR; 
-        $server_file = 
-          Config::HOME_DIR() . DIRECTORY_SEPARATOR . 
-          Config::FRAMEWORK_CORE_DIR . DIRECTORY_SEPARATOR .
+        $server_dir =
+          Config::HOME_DIR() . DIRECTORY_SEPARATOR .
+          Config::PUBLIC_DIR . DIRECTORY_SEPARATOR;
+        $server_file =
+          Config::HOME_DIR() . DIRECTORY_SEPARATOR .
+          Config::FRAMEWORK_DIR . DIRECTORY_SEPARATOR .
           Config::SERVER_CONFIG_FILE;
 
         StandardOutput::write(
-          'info', 
+          'info',
           "Starting the Oracle server on http://{$host}:{$port}..."
         );
         StandardOutput::write('info', 'Press Ctrl+C to stop');

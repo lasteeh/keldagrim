@@ -4,15 +4,15 @@ namespace Keldagrim\Throwable;
 
 use Throwable;
 use ErrorException;
-use Keldagrim\Config;
+use Keldagrim\Core\Config;
 use Keldagrim\CLI\StandardOutput;
 
-final class ErrorHandler {
-  private function __construct() {
+final class ErrorHandler
+{
+  private function __construct() {}
 
-  }
-
-  public static function init(): void {
+  public static function init(): void
+  {
     ob_start();
 
     set_exception_handler([self::class, 'handle_exception']);
@@ -20,16 +20,19 @@ final class ErrorHandler {
     register_shutdown_function([self::class, 'handle_shutdown']);
   }
 
-  public static function handle_exception(Throwable $e): void {
+  public static function handle_exception(Throwable $e): void
+  {
     self::process($e);
   }
 
-  public static function handle_error(int $severity, string $message, string $file, string $line): bool {
+  public static function handle_error(int $severity, string $message, string $file, string $line): bool
+  {
     self::process(new ErrorException($message, 0, $severity, $file, $line));
     return true;
   }
 
-  public static function handle_shutdown(): void {
+  public static function handle_shutdown(): void
+  {
     $error = error_get_last();
     if (empty($error) || !self::is_fatal($error['type'])) return;
 
@@ -44,14 +47,15 @@ final class ErrorHandler {
     );
   }
 
-  private static function process(Throwable $e): void {
+  private static function process(Throwable $e): void
+  {
     // log
     // report
 
     // render
     $is_cli = PHP_SAPI === 'cli';
     $is_debug = filter_var(
-      Config::get(basename(Config::APP_CONFIG_FILE, '.php') . '.debug', true), 
+      Config::get(basename(Config::APP_CONFIG_FILE, '.php') . '.debug', true),
       FILTER_VALIDATE_BOOL
     );
 
@@ -68,7 +72,8 @@ final class ErrorHandler {
     exit(1);
   }
 
-  private static function is_fatal(int $type): bool {
+  private static function is_fatal(int $type): bool
+  {
     return in_array($type, [
       E_ERROR,
       E_PARSE,
@@ -78,9 +83,10 @@ final class ErrorHandler {
     ], true);
   }
 
-  private static function render_cli(Throwable $e, bool $is_debug) {
+  private static function render_cli(Throwable $e, bool $is_debug)
+  {
     StandardOutput::write('error', $e->getMessage());
-    
+
     if ($is_debug) {
       StandardOutput::write('',  $e->getFile() . '(' . $e->getLine() . ')');
       StandardOutput::write('', PHP_EOL);
@@ -90,7 +96,8 @@ final class ErrorHandler {
     StandardOutput::write('', PHP_EOL);
   }
 
-  private static function render_http(Throwable $e, bool $is_debug) {
+  private static function render_http(Throwable $e, bool $is_debug)
+  {
     http_response_code(500);
     header('Content-Type: text/html; charset=utf-8');
 
@@ -98,7 +105,7 @@ final class ErrorHandler {
 
     if ($is_debug) {
       $type = get_debug_type($e);
-      $title = $e->getMessage(); 
+      $title = $e->getMessage();
       $trace = $e->getTraceAsString();
 
       $html = <<<HTML

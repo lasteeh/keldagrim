@@ -1,11 +1,12 @@
 <?php
 
-namespace Keldagrim;
+namespace Keldagrim\Core;
 
 use Keldagrim\Throwable\Exception\InvalidArgument\ActionViewException as InvalidArgumentException;
 use Keldagrim\Throwable\Exception\Logic\ActionViewException as LogicException;
 
-final class ActionView {
+final class ActionView
+{
   private const ALLOWED_FORMATS = ['html', 'xml', 'text', 'js', 'css', 'csv'];
   private string $format;
 
@@ -21,14 +22,16 @@ final class ActionView {
 
   private string $trace;
 
-  public function __construct(string $view = '', array $global = [], string $layout = '', string $format = 'html') {
+  public function __construct(string $view = '', array $global = [], string $layout = '', string $format = 'html')
+  {
     if (!empty($format)) $this->set_format($format);
     if (!empty($view)) $this->set_view($view);
     if (!empty($global)) $this->set_global($global);
     if (!empty($layout)) $this->set_layout($layout);
   }
 
-  private function set_format(string $format): void {
+  private function set_format(string $format): void
+  {
     if (empty($format)) throw new InvalidArgumentException('A format is required.');
 
     if (!in_array($format, self::ALLOWED_FORMATS, true))
@@ -37,49 +40,53 @@ final class ActionView {
     $this->format = $format;
   }
 
-  private function set_view(string $view): void {
+  private function set_view(string $view): void
+  {
     if (empty($view)) throw new InvalidArgumentException('A view file is required.');
 
     $view = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $view);
     $safe_view_file = $view . '.' . $this->format . '.php';
 
     $lock_directory = realpath(
-      Config::HOME_DIR() . DIRECTORY_SEPARATOR . 
-      'app' . DIRECTORY_SEPARATOR . 
-      'views'. DIRECTORY_SEPARATOR
+      Config::HOME_DIR() . DIRECTORY_SEPARATOR .
+        'app' . DIRECTORY_SEPARATOR .
+        'views' . DIRECTORY_SEPARATOR
     );
 
-    $view_file = realpath($lock_directory . DIRECTORY_SEPARATOR .$safe_view_file); 
+    $view_file = realpath($lock_directory . DIRECTORY_SEPARATOR . $safe_view_file);
     if (empty($view_file) || strpos($view_file, $lock_directory) !== 0)
-      throw new LogicException("View file does not exist: {$safe_view_file}"); 
+      throw new LogicException("View file does not exist: {$safe_view_file}");
 
     $this->view = $view_file;
   }
 
-  private function set_global(array $global): void {
+  private function set_global(array $global): void
+  {
     $this->global = $global;
   }
 
-  private function set_layout(string $layout): void {
+  private function set_layout(string $layout): void
+  {
     if (empty($layout)) throw new InvalidArgumentException('A layout file is required.');
-    
+
     $layout = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $layout);
     $safe_layout_file = $layout . '.' . $this->format . '.php';
 
     $lock_directory = realpath(
-      Config::HOME_DIR() . DIRECTORY_SEPARATOR . 
-      'app' . DIRECTORY_SEPARATOR . 
-      'views'. DIRECTORY_SEPARATOR
+      Config::HOME_DIR() . DIRECTORY_SEPARATOR .
+        'app' . DIRECTORY_SEPARATOR .
+        'views' . DIRECTORY_SEPARATOR
     );
 
     $layout_file = realpath($lock_directory . DIRECTORY_SEPARATOR . $safe_layout_file);
     if (empty($layout_file) || strpos($layout_file, $lock_directory) !== 0)
       throw new LogicException("Layout file does not exist or is inaccessible: {$safe_layout_file}");
-  
+
     $this->layout = $layout_file;
   }
 
-  public function render(): string {
+  public function render(): string
+  {
     if (empty($this->view)) return '';
     $this->trace = $this->view;
 
@@ -97,26 +104,30 @@ final class ActionView {
     return $this->render;
   }
 
-  private function content_for(string $name, string $value): void {
+  private function content_for(string $name, string $value): void
+  {
     $this->yield[$name] = $value;
   }
 
-  private function yield(string $name = '', string $default = ''): string {
+  private function yield(string $name = '', string $default = ''): string
+  {
     if (empty($name)) return $this->content;
     return (!isset($this->yield[$name])) ? $default : $this->yield[$name];
   }
 
-  private function global(): array {
+  private function global(): array
+  {
     return empty($this->global) ? [] : $this->global;
   }
 
-  private function partial(string $relative_path, array $local = [], string $format = 'html'): string {
+  private function partial(string $relative_path, array $local = [], string $format = 'html'): string
+  {
     if (empty($relative_path)) throw new InvalidArgumentException('A partial file is required.');
-    
+
     $format = empty($format) ? $this->format : $format;
     if (!in_array($format, self::ALLOWED_FORMATS, true))
       throw new InvalidArgumentException("Unsupported format: {$format}");
-    
+
     $relative_path = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relative_path);
     $safe_relative_path = $relative_path . '.' . $format . '.php';
 
@@ -126,8 +137,8 @@ final class ActionView {
 
     $lock_directory = realpath(
       Config::HOME_DIR() . DIRECTORY_SEPARATOR .
-      'app' . DIRECTORY_SEPARATOR .
-      'views' . DIRECTORY_SEPARATOR
+        'app' . DIRECTORY_SEPARATOR .
+        'views' . DIRECTORY_SEPARATOR
     );
     $full_path = $base_directory . DIRECTORY_SEPARATOR . $safe_relative_path;
     $resolved_path = realpath($full_path);
@@ -144,11 +155,13 @@ final class ActionView {
     return $partial_content;
   }
 
-  private function set_local(array $local): void {
+  private function set_local(array $local): void
+  {
     $this->local = $local;
   }
 
-  private function local(): array {
+  private function local(): array
+  {
     return empty($this->local) ? [] : $this->local;
   }
 }

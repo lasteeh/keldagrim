@@ -1,15 +1,16 @@
 <?php
 
-namespace Keldagrim\Response;
+namespace Keldagrim\Core\Response;
 
-use Keldagrim\Response;
+use Keldagrim\Core\Response;
 
-class HTMLResponse extends Response {
+class HTMLResponse extends Response
+{
   protected string $html;
 
   public function __construct(
-    string $html, 
-    int $status = 200, 
+    string $html,
+    int $status = 200,
     array $headers = ['Content-Type' => 'text/html; charset=utf-8']
   ) {
     $this->html = $html;
@@ -22,7 +23,8 @@ class HTMLResponse extends Response {
     }
   }
 
-  public function send_body(): void {
+  public function send_body(): void
+  {
     echo $this->html;
   }
 }
