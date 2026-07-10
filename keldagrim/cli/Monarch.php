@@ -153,7 +153,7 @@ final class Monarch {
           exit(1);
         }
 
-        $current_version_content = file_get_contents(Config::HOME_DIR() . $version_filename);
+        $current_version_content = file_get_contents(Config::HOME_DIR() . DIRECTORY_SEPARATOR . $version_filename);
         preg_match('/\b(\d+\.\d+\.\d+)\b/', $current_version_content, $matches);
         $current_version = $matches[1] ?? '0.0.0';
         
