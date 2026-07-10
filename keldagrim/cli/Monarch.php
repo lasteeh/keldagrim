@@ -169,8 +169,11 @@ final class Monarch {
 
         StandardOutput::write('', 'Updating project files...');
         $exclude = ['.gitignore'];
-        $this->delete_dir(Config::HOME_DIR() . DIRECTORY_SEPARATOR . 'keldagrim');
         $this->copy_dir($update_source, Config::HOME_DIR(), $exclude);
+        $this->sync_delete_removed_files(
+          $update_source . 'keldagrim', 
+          Config::HOME_DIR() . DIRECTORY_SEPARATOR . 'keldagrim'
+        ); 
 
         StandardOutput::write('', 'Cleaning up temporary files...');
         if (is_dir($extraction_path)) $this->delete_dir($extraction_path);
@@ -269,5 +272,34 @@ final class Monarch {
     }
 
     return null;
+  }
+
+  private function sync_delete_removed_files(string $source, string $destination, array $exclude = []): void {
+    if (!is_dir($destination)) return;
+
+    $directory = opendir($destination);
+    while (($file = readdir($directory)) !== false) {
+      if ($file === '.' || $file === '..') continue;
+
+      $destination_file = $destination . DIRECTORY_SEPARATOR . $file;
+      $source_file = $source . DIRECTORY_SEPARATOR . $file;
+
+      $relative_path = ltrim(str_replace(Config::HOME_DIR(), '', $destination_file), DIRECTORY_SEPARATOR);
+      if (in_array($relative_path, $exclude)) continue;
+
+      if (is_dir($destination_file)) {
+        if (!is_dir($source_file)) {
+          StandardOutput::write('','Removing obsolete directory: ' . $relative_path);
+          $this->delete_dir($destination_file);
+        } else {
+          $this->sync_delete_removed_files($source_file, $destination_file, $exclude);
+        }
+      } else {
+        if (!file_exists($source_file)) {
+          StandardOutput::write('', 'Removing obsolete file:' . $relative_path);
+          $this->delete_file($destination_file);
+        }
+      }
+    }
   }
 }
