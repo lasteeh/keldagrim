@@ -7,12 +7,12 @@ use Keldagrim\Config;
 use Keldagrim\Throwable\Exception\KeldagrimRuntimeException;
 use Keldagrim\Throwable\Exception\KeldagrimInvalidArgumentException;
 use Keldagrim\CLI\OptionsParser;
-use Exception;
 use ZipArchive;
 use RecursiveDirectoryIterator;
 use RecursiveCallbackFilterIterator;
 use RecursiveIteratorIterator;
 
+/* TODO: test update */
 final class Monarch {
   public function __construct() {
     ErrorHandler::init();
