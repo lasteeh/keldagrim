@@ -41,11 +41,24 @@ final class Monarch {
           exit(1);
         }
 
-        $context = stream_context_create(['http' => ['method' => 'HEAD', 'timeout' => 5]]);
-        $headers = get_headers($download_link, false, $context);
-        if ($headers === false || !str_contains($headers[0], '200')) {
-          StandardOutput::write('', 'monarch:'); 
-          StandardOutput::write('', 'Unable to reach url: ' . $download_link); 
+        $ch = curl_init($download_link);
+        curl_setopt_array($ch, [
+          CURLOPT_NOBODY => true,          // HEAD request equivalent
+          CURLOPT_FOLLOWLOCATION => true, 
+          CURLOPT_MAXREDIRS => 5,
+          CURLOPT_TIMEOUT => 5,
+          CURLOPT_RETURNTRANSFER => true,
+          CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+
+        curl_exec($ch);
+        $curl_errno = curl_errno($ch);
+        $status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        unset($ch);
+
+        if ($curl_errno !== 0 || $status_code !== 200) {
+          StandardOutput::write('', 'monarch:');
+          StandardOutput::write('', 'Unable to reach url: ' . $download_link);
           exit(1);
         }
 
