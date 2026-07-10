@@ -2,8 +2,9 @@
 
 namespace Keldagrim;
 
-use Keldagrim\Throwable\Exception\Logic\ActionControllerException;
+use Keldagrim\Throwable\Exception\Logic\ActionControllerException as LogicException;
 use Keldagrim\Request;
+use Keldagrim\Response\HTMLResponse;
 
 abstract class ActionController {
   protected static array $skip_before_action = [];
@@ -11,7 +12,11 @@ abstract class ActionController {
   protected static array $skip_after_action = [];
   protected static array $after_action = [];
 
-  public function __construct() {
+  private Request $request;
+
+  public function __construct(Request $request) {
+    $this->request = $request;
+
     $this->setup_filter('before_action');
     $this->setup_filter('skip_before_action');
     $this->setup_filter('after_action');
@@ -22,7 +27,7 @@ abstract class ActionController {
     $class = static::class;
 
     if (!method_exists($this, $method)) 
-      throw new ActionControllerException("Method [{$method}] not found on [{$class}]");
+      throw new LogicException("Method [{$method}] not found on [{$class}]");
 
     $before_filters = static::$before_action;
     $skip_before_filters = static::$skip_before_action;
@@ -33,7 +38,7 @@ abstract class ActionController {
         $this->filter_should_apply($method, $filter_options)
       ) {
         if (!method_exists($this, $before_filter))
-          throw new ActionControllerException("Method [{$before_filter}] not found on [{$class}]");
+          throw new LogicException("Method [{$before_filter}] not found on [{$class}]");
 
         $this->{$before_filter}($request);
       }
@@ -50,11 +55,14 @@ abstract class ActionController {
         $this->filter_should_apply($method, $filter_options)
       ) {
         if (!method_exists($this, $after_filter))
-          throw new ActionControllerException("Method [{$after_filter}] not found on [{$class}]");
+          throw new LogicException("Method [{$after_filter}] not found on [{$class}]");
 
         $this->{$after_filter}($request);
       }
     }
+
+    /* TODO: implement clear flash */
+    /* $this->clear_flash(); */
 
     if (empty($response)) return;
     if ($response instanceof Response) { $response->send(); return; } // wip if return $response->send() produce error and shutdown, FIX
@@ -87,7 +95,7 @@ abstract class ActionController {
     return false;
   }
 
-  final private function setup_filter(string $filter_name) {
+  private function setup_filter(string $filter_name) {
     $all_filters = [];
     $class = static::class;
 
@@ -104,5 +112,52 @@ abstract class ActionController {
     }
 
     static::$$filter_name = $normalized_filters;
+  }
+
+  protected function html(
+    string $view = '', 
+    array $with = [], 
+    int $status = 200, 
+    string $layout = '', 
+    array $flash = []
+  ): HTMLResponse {
+    $request_action = $this->request?->action ?? [];
+    $request_controller = $request_action[0] ?? null;
+    $request_method = $request_action[1] ?? null;
+
+    if (
+      empty($request_action) ||
+      !is_array($request_action) || 
+      count($request_action) !== 2 ||
+      !is_subclass_of($request_controller, self::class) ||
+      !method_exists($request_controller, $request_method)
+    ) throw new LogicException('Invalid request action. A valid view path must be provided.');
+
+    if (empty($view)) {
+      $controller_prefix = 'App\\Controllers\\';
+      $controller_suffix = 'Controller';
+      $view = (string) $request_controller;
+
+      if (str_starts_with($view, $controller_prefix))
+        $view = substr_replace($view, '', 0, strlen($controller_prefix));
+
+      if (str_ends_with($view, $controller_suffix))
+        $view = substr($view, 0, -strlen($controller_suffix));
+
+      $view = $view . DIRECTORY_SEPARATOR . $request_method;
+      $view = strtolower($view);
+    }
+
+    /* TODO: implement setting flashes  */
+    /* if (!empty($flash)) { */
+    /*   foreach ($flash as $type => $value) { */
+    /*     $this->flash($type, $value); */
+    /*   } */
+    /* } */
+
+    $action_view = new ActionView($view, $with, $layout, 'html');
+    $html = $action_view->render();
+
+    return new HTMLResponse($html, $status);
   }
 }
