@@ -2,7 +2,8 @@
 
 namespace Keldagrim\Core;
 
-use Keldagrim\Throwable\Exception\Logic\ActionControllerException as LogicException;
+use Keldagrim\Throwable\Exception\Controller\ActionControllerException;
+use Keldagrim\Throwable\Exception\Controller\ActionNotFoundException;
 use Keldagrim\Core\Request;
 use Keldagrim\Core\Response\HTMLResponse;
 
@@ -30,7 +31,7 @@ abstract class ActionController
     $class = static::class;
 
     if (!method_exists($this, $method))
-      throw new LogicException("Method [{$method}] not found on [{$class}]");
+      throw new ActionNotFoundException("Method [{$method}] not found on [{$class}]");
 
     $before_filters = static::$before_action;
     $skip_before_filters = static::$skip_before_action;
@@ -41,7 +42,7 @@ abstract class ActionController
         $this->filter_should_apply($method, $filter_options)
       ) {
         if (!method_exists($this, $before_filter))
-          throw new LogicException("Method [{$before_filter}] not found on [{$class}]");
+          throw new ActionControllerException("Method [{$before_filter}] not found on [{$class}]");
 
         $this->{$before_filter}($request);
       }
@@ -58,7 +59,7 @@ abstract class ActionController
         $this->filter_should_apply($method, $filter_options)
       ) {
         if (!method_exists($this, $after_filter))
-          throw new LogicException("Method [{$after_filter}] not found on [{$class}]");
+          throw new ActionControllerException("Method [{$after_filter}] not found on [{$class}]");
 
         $this->{$after_filter}($request);
       }
@@ -140,7 +141,7 @@ abstract class ActionController
       count($request_action) !== 2 ||
       !is_subclass_of($request_controller, self::class) ||
       !method_exists($request_controller, $request_method)
-    ) throw new LogicException('Invalid request action. A valid view path must be provided.');
+    ) throw new ActionControllerException('Invalid request action. A valid view path must be provided.');
 
     if (empty($view)) {
       $controller_prefix = 'App\\Controllers\\';

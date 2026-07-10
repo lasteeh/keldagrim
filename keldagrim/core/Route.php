@@ -2,7 +2,7 @@
 
 namespace Keldagrim\Core;
 
-use Keldagrim\Throwable\Exception\Logic\RouteException;
+use Keldagrim\Throwable\Exception\Routing\RouteException;
 use Keldagrim\Core\Config;
 
 final class Route

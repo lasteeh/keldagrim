@@ -3,7 +3,7 @@
 namespace Keldagrim\Core;
 
 use Closure;
-use Keldagrim\Throwable\Exception\Logic\RouteException;
+use Keldagrim\Throwable\Exception\Routing\RouteNotFoundException;
 
 final class Request
 {
@@ -31,7 +31,7 @@ final class Request
     $routes_map = Route::all([$request->method]);
     $routes = $routes_map[$request->method] ?? [];
     if (empty($routes))
-      throw new RouteException("No route matches [{$request->method}] \"{$request->uri}\"");
+      throw new RouteNotFoundException("No route matches [{$request->method}] \"{$request->uri}\"");
 
     $match_found = false;
     foreach ($routes as $route) {
@@ -54,7 +54,7 @@ final class Request
     }
 
     if (empty($match_found))
-      throw new RouteException("No route matches [{$request->method}] \"{$request->uri}\"");
+      throw new RouteNotFoundException("No route matches [{$request->method}] \"{$request->uri}\"");
 
     return $request;
   }

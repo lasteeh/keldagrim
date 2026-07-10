@@ -2,7 +2,7 @@
 
 namespace Keldagrim\Core;
 
-use Keldagrim\Throwable\Exception\Runtime\ConfigException;
+use Keldagrim\Throwable\Exception\Config\ConfigException;
 
 class Config
 {
@@ -87,7 +87,7 @@ class Config
         $dotenv = \Dotenv\Dotenv::createImmutable(self::HOME_DIR());
         $dotenv->load();
       } catch (\Exception $e) {
-        throw new ConfigException($e);
+        throw new ConfigException('Failed to load .env: ' . $e->getMessage(), 0, $e);
       }
     } else {
       if (!file_exists($env_path)) return;

@@ -6,6 +6,9 @@ use Throwable;
 use ErrorException;
 use Keldagrim\Core\Config;
 use Keldagrim\CLI\StandardOutput;
+use Keldagrim\Throwable\Exception\Routing\RouteNotFoundException;
+use Keldagrim\Throwable\Exception\Controller\ActionNotFoundException;
+use Keldagrim\Throwable\Exception\View\MissingTemplateException;
 
 final class ErrorHandler
 {
@@ -72,6 +75,16 @@ final class ErrorHandler
     exit(1);
   }
 
+  private static function http_status(Throwable $e): int
+  {
+    return match (true) {
+      $e instanceof RouteNotFoundException,
+      $e instanceof ActionNotFoundException,
+      $e instanceof MissingTemplateException => 404,
+      default => 500,
+    };
+  }
+
   private static function is_fatal(int $type): bool
   {
     return in_array($type, [
@@ -98,7 +111,9 @@ final class ErrorHandler
 
   private static function render_http(Throwable $e, bool $is_debug)
   {
-    http_response_code(500);
+    $status = self::http_status($e);
+
+    http_response_code($status);
     header('Content-Type: text/html; charset=utf-8');
 
     $html = '';
@@ -191,6 +206,8 @@ final class ErrorHandler
         </html>
       HTML;
     } else {
+      $heading = $status === 404 ? 'Page not found.' : 'Something went wrong.';
+
       $html = <<<HTML
         <!doctype html>
         <html>
@@ -222,7 +239,7 @@ final class ErrorHandler
             </style>
           </head>
           <body>
-            <h1>Something went wrong.</h1>
+            <h1>$heading</h1>
             <p>If you are the application owner, check the logs for more information.</p> 
           </body>
         </html>

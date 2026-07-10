@@ -4,7 +4,7 @@ namespace Keldagrim\CLI;
 
 use Keldagrim\Throwable\ErrorHandler;
 use Keldagrim\Core\Config;
-use Keldagrim\Throwable\Exception\KeldagrimRuntimeException;
+use Keldagrim\Throwable\Exception\CLI\ConsoleException;
 use Keldagrim\CLI\StandardOutput;
 use Keldagrim\CLI\OptionsParser;
 
@@ -16,7 +16,7 @@ final class Oracle
     Config::init();
 
     if (PHP_SAPI !== 'cli')
-      throw new KeldagrimRuntimeException('CLI environment required.');
+      throw new ConsoleException('CLI environment required.');
   }
 
   public function run(array $args): void

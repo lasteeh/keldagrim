@@ -4,8 +4,7 @@ namespace Keldagrim\CLI;
 
 use Keldagrim\Throwable\ErrorHandler;
 use Keldagrim\Core\Config;
-use Keldagrim\Throwable\Exception\KeldagrimRuntimeException;
-use Keldagrim\Throwable\Exception\KeldagrimInvalidArgumentException;
+use Keldagrim\Throwable\Exception\CLI\ConsoleException;
 use Keldagrim\CLI\OptionsParser;
 use ZipArchive;
 use RecursiveDirectoryIterator;
@@ -22,7 +21,7 @@ final class Monarch
     Config::init();
 
     if (PHP_SAPI !== 'cli')
-      throw new KeldagrimRuntimeException('CLI environment required.');
+      throw new ConsoleException('CLI environment required.');
   }
 
   public function run(array $args): void
@@ -115,12 +114,12 @@ final class Monarch
           } else {
             $zip->close();
             if (is_dir($extraction_path)) $this->delete_dir($extraction_path);
-            throw new KeldagrimRuntimeException('Failed to extract update zip files.');
+            throw new ConsoleException('Failed to extract update zip files.');
           }
         } else {
           if (is_dir($extraction_path)) $this->delete_dir($extraction_path);
           if (file_exists($save_path)) $this->delete_file($save_path);
-          throw new KeldagrimRuntimeException('Failed to open update zip file. ');
+          throw new ConsoleException('Failed to open update zip file. ');
         }
 
         $version_filename = '.keldagrim-version';
@@ -194,23 +193,23 @@ final class Monarch
   private function delete_file(string $path): void
   {
     if (!is_link($path) && !is_file($path))
-      throw new KeldagrimInvalidArgumentException('File deletion failed. Invalid file path: ' . $path);
+      throw new ConsoleException('File deletion failed. Invalid file path: ' . $path);
 
     if (!unlink($path)) {
       $last_error = error_get_last();
       $error_message = !empty($last_error) ? $last_error['message'] : 'Unkown system error?';
-      throw new KeldagrimRuntimeException("Failed to delete \"{$path}\": {$error_message}");
+      throw new ConsoleException("Failed to delete \"{$path}\": {$error_message}");
     }
   }
 
   private function delete_dir(string $path): void
   {
     if (!is_dir($path))
-      throw new KeldagrimInvalidArgumentException('Directory deletion failed. Directory does not exist: ' . $path);
+      throw new ConsoleException('Directory deletion failed. Directory does not exist: ' . $path);
 
     $files = scandir($path);
     if ($files === false)
-      throw new KeldagrimRuntimeException('Failed to scan directory: ' . $path);
+      throw new ConsoleException('Failed to scan directory: ' . $path);
 
     $files = array_diff($files, ['.', '..']);
     foreach ($files as $file) {
@@ -226,14 +225,14 @@ final class Monarch
     if (!rmdir($path)) {
       $last_error = error_get_last();
       $error_message = !empty($last_error) ? $last_error['message'] : 'Unkown OS-level error?';
-      throw new KeldagrimRuntimeException("Directory \"{$path}\" deletion failed: {$error_message}");
+      throw new ConsoleException("Directory \"{$path}\" deletion failed: {$error_message}");
     }
   }
 
   private function copy_dir(string $source, string $destination, array $exclude = []): void
   {
     if (!is_dir($source))
-      throw new KeldagrimInvalidArgumentException('Unable to find directory: ' . $source);
+      throw new ConsoleException('Unable to find directory: ' . $source);
     if (!is_dir($destination)) mkdir($destination, 0755, true);
 
     $directory = opendir($source);
@@ -252,7 +251,7 @@ final class Monarch
         if (!copy($source_file, $destination_file)) {
           $last_error = error_get_last();
           $error_message = !empty($last_error) ? $last_error['message'] : 'Unknown system error?';
-          throw new KeldagrimRuntimeException("Failed to copy \"{$source_file}\": {$error_message}");
+          throw new ConsoleException("Failed to copy \"{$source_file}\": {$error_message}");
         }
       }
     }

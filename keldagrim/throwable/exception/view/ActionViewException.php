@@ -1,6 +1,6 @@
 <?php
 
-namespace Keldagrim\Throwable\Exception\Logic;
+namespace Keldagrim\Throwable\Exception\View;
 
 use Keldagrim\Throwable\Exception\KeldagrimLogicException;
 

@@ -2,8 +2,9 @@
 
 namespace Keldagrim\Core;
 
-use Keldagrim\Throwable\Exception\InvalidArgument\ActionViewException as InvalidArgumentException;
-use Keldagrim\Throwable\Exception\Logic\ActionViewException as LogicException;
+use Keldagrim\Throwable\Exception\View\ActionViewException;
+use Keldagrim\Throwable\Exception\View\MissingTemplateException;
+use Keldagrim\Throwable\Exception\View\UnsupportedFormatException;
 
 final class ActionView
 {
@@ -32,17 +33,17 @@ final class ActionView
 
   private function set_format(string $format): void
   {
-    if (empty($format)) throw new InvalidArgumentException('A format is required.');
+    if (empty($format)) throw new ActionViewException('A format is required.');
 
     if (!in_array($format, self::ALLOWED_FORMATS, true))
-      throw new InvalidArgumentException("Unsupported format: {$format}");
+      throw new UnsupportedFormatException("Unsupported format: {$format}");
 
     $this->format = $format;
   }
 
   private function set_view(string $view): void
   {
-    if (empty($view)) throw new InvalidArgumentException('A view file is required.');
+    if (empty($view)) throw new ActionViewException('A view file is required.');
 
     $view = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $view);
     $safe_view_file = $view . '.' . $this->format . '.php';
@@ -55,7 +56,7 @@ final class ActionView
 
     $view_file = realpath($lock_directory . DIRECTORY_SEPARATOR . $safe_view_file);
     if (empty($view_file) || strpos($view_file, $lock_directory) !== 0)
-      throw new LogicException("View file does not exist: {$safe_view_file}");
+      throw new MissingTemplateException("View file does not exist: {$safe_view_file}");
 
     $this->view = $view_file;
   }
@@ -67,7 +68,7 @@ final class ActionView
 
   private function set_layout(string $layout): void
   {
-    if (empty($layout)) throw new InvalidArgumentException('A layout file is required.');
+    if (empty($layout)) throw new ActionViewException('A layout file is required.');
 
     $layout = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $layout);
     $safe_layout_file = $layout . '.' . $this->format . '.php';
@@ -80,7 +81,7 @@ final class ActionView
 
     $layout_file = realpath($lock_directory . DIRECTORY_SEPARATOR . $safe_layout_file);
     if (empty($layout_file) || strpos($layout_file, $lock_directory) !== 0)
-      throw new LogicException("Layout file does not exist or is inaccessible: {$safe_layout_file}");
+      throw new MissingTemplateException("Layout file does not exist or is inaccessible: {$safe_layout_file}");
 
     $this->layout = $layout_file;
   }
@@ -122,18 +123,18 @@ final class ActionView
 
   private function partial(string $relative_path, array $local = [], string $format = 'html'): string
   {
-    if (empty($relative_path)) throw new InvalidArgumentException('A partial file is required.');
+    if (empty($relative_path)) throw new ActionViewException('A partial file is required.');
 
     $format = empty($format) ? $this->format : $format;
     if (!in_array($format, self::ALLOWED_FORMATS, true))
-      throw new InvalidArgumentException("Unsupported format: {$format}");
+      throw new UnsupportedFormatException("Unsupported format: {$format}");
 
     $relative_path = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relative_path);
     $safe_relative_path = $relative_path . '.' . $format . '.php';
 
     $base_directory = dirname($this->trace);
     if (empty($base_directory))
-      throw new LogicException('Base directory does not exist.');
+      throw new ActionViewException('Base directory does not exist.');
 
     $lock_directory = realpath(
       Config::HOME_DIR() . DIRECTORY_SEPARATOR .
@@ -143,7 +144,7 @@ final class ActionView
     $full_path = $base_directory . DIRECTORY_SEPARATOR . $safe_relative_path;
     $resolved_path = realpath($full_path);
     if (empty($resolved_path) || strpos($resolved_path, $lock_directory) !== 0)
-      throw new LogicException("Partial file does not exist or is inaccessible: {$safe_relative_path}");
+      throw new MissingTemplateException("Partial file does not exist or is inaccessible: {$safe_relative_path}");
 
     if (!empty($local)) $this->set_local($local);
 

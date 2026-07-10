@@ -5,7 +5,8 @@ namespace Keldagrim\Core;
 use Keldagrim\Throwable\ErrorHandler;
 use Keldagrim\Core\Request;
 use Closure;
-use Keldagrim\Throwable\Exception\Logic\RouteException;
+use Keldagrim\Throwable\Exception\Routing\RouteException;
+use Keldagrim\Throwable\Exception\Controller\ActionNotFoundException;
 
 final class App
 {
@@ -38,10 +39,10 @@ final class App
       [$class, $method] = $action;
 
       if (!class_exists($class))
-        throw new RouteException("Controller class [{$class}] not found");
+        throw new ActionNotFoundException("Controller class [{$class}] not found");
 
       if (!method_exists($class, $method))
-        throw new RouteException("Method [{$method}] not found on [{$class}]");
+        throw new ActionNotFoundException("Method [{$method}] not found on [{$class}]");
 
       $controller = new $class($request);
       $controller->execute($method, $request);
