@@ -169,6 +169,7 @@ final class Monarch {
 
         StandardOutput::write('', 'Updating project files...');
         $exclude = ['.gitignore'];
+        $this->delete_dir(Config::HOME_DIR() . DIRECTORY_SEPARATOR . 'keldagrim');
         $this->copy_dir($update_source, Config::HOME_DIR(), $exclude);
 
         StandardOutput::write('', 'Cleaning up temporary files...');
