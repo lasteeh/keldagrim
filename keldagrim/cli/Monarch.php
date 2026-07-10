@@ -238,7 +238,7 @@ final class Monarch {
       if (is_dir($source_file)) {
         $this->copy_dir($source_file, $destination_file, $exclude);
       } else {
-        if (!copy($source_file, $destination_file, $exclude)) {
+        if (!copy($source_file, $destination_file)) {
           $last_error = error_get_last();
           $error_message = !empty($last_error) ? $last_error['message'] : 'Unknown system error?';
           throw new KeldagrimRuntimeException("Failed to copy \"{$source_file}\": {$error_message}");
