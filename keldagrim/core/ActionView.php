@@ -165,4 +165,8 @@ final class ActionView
   {
     return empty($this->local) ? [] : $this->local;
   }
+
+  private function stylesheet(string $path, string $ext = 'css'): string {
+    /* return Config::HOME_URL() .  */
+  }
 }
