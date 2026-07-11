@@ -27,7 +27,11 @@ abstract class ActionController
     $this->setup_filter('skip_after_action');
   }
 
-  public function execute(string $method, Request $request): void
+  protected function request(): Request {
+    return $this->request;
+  }
+
+  public function execute(string $method): void
   {
     $class = static::class;
 
@@ -45,11 +49,11 @@ abstract class ActionController
         if (!method_exists($this, $before_filter))
           throw new ActionControllerException("Method [{$before_filter}] not found on [{$class}]");
 
-        $this->{$before_filter}($request);
+        $this->{$before_filter}();
       }
     }
 
-    $response = $this->{$method}($request);
+    $response = $this->{$method}();
 
     $after_filters = static::$after_action;
     $skip_after_filters = static::$skip_after_action;
@@ -62,7 +66,7 @@ abstract class ActionController
         if (!method_exists($this, $after_filter))
           throw new ActionControllerException("Method [{$after_filter}] not found on [{$class}]");
 
-        $this->{$after_filter}($request);
+        $this->{$after_filter}();
       }
     }
 

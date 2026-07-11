@@ -45,7 +45,7 @@ final class App
         throw new ActionNotFoundException("Method [{$method}] not found on [{$class}]");
 
       $controller = new $class($request);
-      $controller->execute($method, $request);
+      $controller->execute($method);
 
       return;
     }
