@@ -4,9 +4,11 @@ namespace Keldagrim\Core;
 
 use Keldagrim\Throwable\Exception\Controller\ActionControllerException;
 use Keldagrim\Throwable\Exception\Controller\ActionNotFoundException;
+use Keldagrim\Throwable\Exception\Controller\UnsafeRedirectException;
 use Keldagrim\Core\Request;
 use Keldagrim\Core\Response\HTMLResponse;
 use Keldagrim\Core\Response\JSONResponse;
+use Keldagrim\Core\Response\RedirectResponse;
 
 abstract class ActionController
 {
@@ -198,5 +200,41 @@ abstract class ActionController
     int $status = 200,
   ): JSONResponse {
     return new JSONResponse($data, $status);
+  }
+
+  final protected function redirect(
+    string $path, 
+    int $status = 302, 
+    array $flash = [],
+    bool $allow_external = false
+  ): RedirectResponse {
+
+    $full_path = '';
+    $has_scheme_or_authority = preg_match('~^(//|[a-z][a-z\d+.\-]*:)~i', $path) === 1;
+
+    if (!$has_scheme_or_authority) {
+      $full_path = rtrim(Config::HOME_URL(), '/') . '/' . ltrim($path, '/');
+    } else {
+      $target_host = parse_url($path, PHP_URL_HOST);
+      $own_host = parse_url(Config::HOME_URL(), PHP_URL_HOST);
+
+      if ($target_host !== null && strcasecmp($target_host, $own_host) !== 0) {
+        if (!$allow_external) throw new UnsafeRedirectException(
+          "Refuse to redirect to external host '{$target_host}'. " .
+          "Pass allow_external: true if this is intentional." 
+        );
+      }
+
+      $full_path = $path;
+    }
+
+    /* TODO: implement setting flashes  */
+    /* if (!empty($flash)) { */
+    /*   foreach ($flash as $type => $value) { */
+    /*     $this->flash($type, $value); */
+    /*   } */
+    /* } */   
+    
+    return new RedirectResponse($full_path, $status);
   }
 }
