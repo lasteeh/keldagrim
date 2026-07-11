@@ -27,11 +27,11 @@ abstract class ActionController
     $this->setup_filter('skip_after_action');
   }
 
-  protected function request(): Request {
+  final protected function request(): Request {
     return $this->request;
   }
 
-  public function execute(string $method): void
+  final public function execute(string $method): void
   {
     $class = static::class;
 
@@ -129,7 +129,24 @@ abstract class ActionController
     static::$$filter_name = $normalized_filters;
   }
 
-  protected function html(
+  final protected function params_permit(array $permit, array $input): array {
+    $params = [];
+    foreach ($permit as $field) {
+      if (!isset($input[$field])) continue;
+      $params[$field] = $input[$field];
+    }
+    return $params;
+  }
+
+  final protected function route_params(): array {
+    return $this->request?->route_params ?? [];
+  }
+
+  final protected function route_param(string $name): ?string {
+    return $this->route_params()[$name] ?? null;
+  }
+
+  final protected function html(
     string $view = '',
     array $with = [],
     int $status = 200,
@@ -176,7 +193,7 @@ abstract class ActionController
     return new HTMLResponse($html, $status);
   }
 
-  protected function json(
+  final protected function json(
     array $data,
     int $status = 200,
   ): JSONResponse {
