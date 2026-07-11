@@ -6,6 +6,7 @@ use Keldagrim\Throwable\Exception\Controller\ActionControllerException;
 use Keldagrim\Throwable\Exception\Controller\ActionNotFoundException;
 use Keldagrim\Core\Request;
 use Keldagrim\Core\Response\HTMLResponse;
+use Keldagrim\Core\Response\JSONResponse;
 
 abstract class ActionController
 {
@@ -169,5 +170,12 @@ abstract class ActionController
     $html = $action_view->render();
 
     return new HTMLResponse($html, $status);
+  }
+
+  protected function json(
+    array $data,
+    int $status = 200,
+  ): JSONResponse {
+    return new JSONResponse($data, $status);
   }
 }
