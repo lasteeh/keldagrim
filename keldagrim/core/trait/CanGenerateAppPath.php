@@ -8,6 +8,6 @@ trait CanGenerateAppPath
 {
   public static function path(string $to): string
   {
-    return Config::HOME_URL() . $to;
+    return rtrim(Config::HOME_URL(), '/') . '/' . ltrim('/', $to);
   }
 }

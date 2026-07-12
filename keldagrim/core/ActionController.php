@@ -9,9 +9,12 @@ use Keldagrim\Core\Request;
 use Keldagrim\Core\Response\HTMLResponse;
 use Keldagrim\Core\Response\JSONResponse;
 use Keldagrim\Core\Response\RedirectResponse;
+use Keldagrim\Core\Trait\CanGenerateAppPath;
 
 abstract class ActionController
 {
+  use CanGenerateAppPath;
+
   protected static array $skip_before_action = [];
   protected static array $before_action = [];
   protected static array $skip_after_action = [];
