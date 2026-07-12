@@ -25,6 +25,6 @@
 
 # this keeps directories even if empty 
 # for placeholders' sake
-!*.gitkeep
+!**/.gitkeep
 
 README
