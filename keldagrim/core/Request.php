@@ -19,13 +19,23 @@ final class Request
     $request = new self;
 
     $url_components = parse_url(Config::HOME_URL());
-    $custom_request_path = $url_components['path'] ?? '';
+    $base_path = rtrim($url_components['path'] ?? '', '/');
+
     $server_request_uri = $_SERVER['REQUEST_URI'] ?? '';
+    $path = parse_url($server_request_uri, PHP_URL_PATH) ?? '';
 
-    $request->uri = strpos($server_request_uri, $custom_request_path) === 0
-      ? substr($server_request_uri, strlen($custom_request_path))
-      : $custom_request_path;
+    if ($base_path === '' || $path === $base_path) {
+      $uri = ($base_path === '') ? $path : '/';
+    } elseif (strpos($path, $base_path . '/') === 0) {
+      $uri = substr($path, strlen($base_path));
+    } else {
+      throw new RouteNotFoundException("Request \"{$path}\" is outside the application base path");
+    }
 
+    $uri = rawurldecode($uri);
+    if ($uri === '') $uri = '/';
+
+    $request->uri = $uri;
     $request->method = strtoupper($_SERVER['REQUEST_METHOD'] ?? '');
 
     $routes_map = Route::all([$request->method]);

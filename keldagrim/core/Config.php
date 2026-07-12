@@ -59,6 +59,11 @@ class Config
     $request_scheme = ($force_https === true) ? 'https' : ($_SERVER['REQUEST_SCHEME'] ?? 'http');
     $http_host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
+    if (php_sapi_name() === 'cli-server') { 
+      self::$HOME_URL = $request_scheme . '://' . $http_host; 
+      return; 
+    }
+
     $script_name = $_SERVER['SCRIPT_NAME'] ?? '';
     $public_dir = self::PUBLIC_DIR . '/';
 

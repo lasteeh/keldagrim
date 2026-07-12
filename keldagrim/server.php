@@ -17,7 +17,7 @@ $static_file =
 
 if (
   $request_uri !== '/' &&
-  file_exists($static_file) &&
+  is_file($static_file) &&
   !is_dir($static_file)
 ) return false;
 

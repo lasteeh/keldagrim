@@ -167,6 +167,10 @@ final class ActionView
   }
 
   private function stylesheet(string $path, string $ext = 'css'): string {
-    /* return Config::HOME_URL() .  */
+    return rtrim(Config::HOME_URL(), '/') . '/assets/css/' . ltrim($path, '/') . '.' . $ext; 
+  }
+
+  private function script(string $path, string $ext = 'js'): string {
+    return rtrim(Config::HOME_URL(), '/') . '/assets/js/' . ltrim($path, '/') . '.' . $ext;
   }
 }
