@@ -26,7 +26,7 @@ final class Request
 
     if ($base_path === '' || $path === $base_path) {
       $uri = ($base_path === '') ? $path : '/';
-    } elseif (strpos($path, $base_path . '/') === 0) {
+    } elseif (str_starts_with($path, $base_path . '/')) {
       $uri = substr($path, strlen($base_path));
     } else {
       throw new RouteNotFoundException("Request \"{$path}\" is outside the application base path");
@@ -44,7 +44,7 @@ final class Request
     if (
       !empty($static_file) && 
       is_file($static_file) && 
-      strpos($static_file, $lock_directory . DIRECTORY_SEPARATOR) === 0
+      str_starts_with($static_file, $lock_directory . DIRECTORY_SEPARATOR)
     ) {
       $ext = strtolower(pathinfo($static_file, PATHINFO_EXTENSION));
       if ($ext === 'php') { require $static_file; exit; }
