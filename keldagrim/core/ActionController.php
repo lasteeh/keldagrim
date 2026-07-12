@@ -209,7 +209,7 @@ abstract class ActionController
     bool $allow_external = false
   ): RedirectResponse {
 
-    $full_path = '';
+    $full_path = '/';
     $has_scheme_or_authority = preg_match('~^(//|[a-z][a-z\d+.\-]*:)~i', $path) === 1;
 
     if (!$has_scheme_or_authority) {
