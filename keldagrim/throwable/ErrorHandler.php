@@ -56,7 +56,7 @@ final class ErrorHandler
     // report
 
     // render
-    $is_cli = PHP_SAPI === 'cli';
+    $is_cli = \PHP_SAPI === 'cli';
     $is_debug = filter_var(
       Config::get(basename(Config::APP_CONFIG_FILE, '.php') . '.debug', true),
       FILTER_VALIDATE_BOOL
