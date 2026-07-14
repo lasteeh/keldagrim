@@ -15,7 +15,7 @@ final class Oracle
     ErrorHandler::init();
     Config::init();
 
-    if (PHP_SAPI !== 'cli')
+    if (\PHP_SAPI !== 'cli')
       throw new ConsoleException('CLI environment required.');
   }
 

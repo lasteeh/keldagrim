@@ -7,9 +7,8 @@ use Keldagrim\Core\Config;
 use Keldagrim\Throwable\Exception\CLI\ConsoleException;
 use Keldagrim\CLI\OptionsParser;
 use ZipArchive;
-use RecursiveDirectoryIterator;
-use RecursiveCallbackFilterIterator;
-use RecursiveIteratorIterator;
+use Keldagrim\Support\FileSystem;
+
 
 /* TODO: test update */
 
@@ -20,7 +19,7 @@ final class Monarch
     ErrorHandler::init();
     Config::init();
 
-    if (PHP_SAPI !== 'cli')
+    if (\PHP_SAPI !== 'cli')
       throw new ConsoleException('CLI environment required.');
   }
 
@@ -85,19 +84,19 @@ final class Monarch
 
         if (is_dir($extraction_path)) {
           StandardOutput::write('', 'Clearing out temporary update directory...');
-          $this->delete_dir($extraction_path);
+          FileSystem::delete_dir($extraction_path);
         }
 
         if (file_exists($save_path)) {
           StandardOutput::write('', 'Clearing existing update zip file...');
-          $this->delete_file($save_path);
+          FileSystem::delete_file($save_path);
         }
 
         StandardOutput::write('', 'Downloading updates...');
 
         $file_content = file_get_contents($download_link);
         if ($file_content === false) {
-          if (file_exists($save_path)) $this->delete_file($save_path);
+          if (file_exists($save_path)) FileSystem::delete_file($save_path);
           StandardOutput::write('', 'Failed to download update zip file.');
           exit(1);
         }
@@ -113,23 +112,23 @@ final class Monarch
             StandardOutput::write('', 'Update zip files have been extracted successfully.');
           } else {
             $zip->close();
-            if (is_dir($extraction_path)) $this->delete_dir($extraction_path);
+            if (is_dir($extraction_path)) FileSystem::delete_dir($extraction_path);
             throw new ConsoleException('Failed to extract update zip files.');
           }
         } else {
-          if (is_dir($extraction_path)) $this->delete_dir($extraction_path);
-          if (file_exists($save_path)) $this->delete_file($save_path);
+          if (is_dir($extraction_path)) FileSystem::delete_dir($extraction_path);
+          if (file_exists($save_path)) FileSystem::delete_file($save_path);
           throw new ConsoleException('Failed to open update zip file. ');
         }
 
         $version_filename = '.keldagrim-version';
         $exclude_directories = ['vendors'];
-        $update_source = $this->find_file_dir($extraction_path, $version_filename, $exclude_directories);
+        $update_source = FileSystem::find_file_dir($extraction_path, $version_filename, $exclude_directories);
         if (empty($update_source)) {
           StandardOutput::write('', 'Incorrect update files. Aborting...');
           StandardOutput::write('', 'Cleaning up temporary files...');
-          if (is_dir($extraction_path)) $this->delete_dir($extraction_path);
-          if (file_exists($save_path)) $this->delete_file($save_path);
+          if (is_dir($extraction_path)) FileSystem::delete_dir($extraction_path);
+          if (file_exists($save_path)) FileSystem::delete_file($save_path);
           StandardOutput::write('', 'Update aborted.');
           exit(1);
         }
@@ -138,8 +137,8 @@ final class Monarch
         if (!file_exists($version_filepath)) {
           StandardOutput::write('', 'Unable to find update version. Aborting...');
           StandardOutput::write('', 'Cleaning up temporary files...');
-          if (is_dir($extraction_path)) $this->delete_dir($extraction_path);
-          if (file_exists($save_path)) $this->delete_file($save_path);
+          if (is_dir($extraction_path)) FileSystem::delete_dir($extraction_path);
+          if (file_exists($save_path)) FileSystem::delete_file($save_path);
           StandardOutput::write('', 'Update aborted.');
           exit(1);
         }
@@ -150,8 +149,8 @@ final class Monarch
         if (empty($downloaded_version)) {
           StandardOutput::write('', 'Unable to find update version. Aborting...');
           StandardOutput::write('', 'Cleaning up temporary files...');
-          if (is_dir($extraction_path)) $this->delete_dir($extraction_path);
-          if (file_exists($save_path)) $this->delete_file($save_path);
+          if (is_dir($extraction_path)) FileSystem::delete_dir($extraction_path);
+          if (file_exists($save_path)) FileSystem::delete_file($save_path);
           StandardOutput::write('', 'Update aborted.');
           exit(1);
         }
@@ -164,150 +163,29 @@ final class Monarch
         if (strtolower($confirmation) !== 'y') {
           StandardOutput::write('', 'Aborting...');
           StandardOutput::write('', 'Cleaning up temporary files...');
-          if (is_dir($extraction_path)) $this->delete_dir($extraction_path);
-          if (file_exists($save_path)) $this->delete_file($save_path);
+          if (is_dir($extraction_path)) FileSystem::delete_dir($extraction_path);
+          if (file_exists($save_path)) FileSystem::delete_file($save_path);
           StandardOutput::write('', 'Update aborted.');
           exit;
         }
 
         StandardOutput::write('', 'Updating project files...');
         $exclude = ['.gitignore'];
-        $this->copy_dir($update_source, Config::HOME_DIR(), $exclude);
-        $this->sync_delete_removed_files(
+        FileSystem::copy_dir($update_source, Config::HOME_DIR(), $exclude);
+        FileSystem::sync_delete_removed_files(
           $update_source . 'keldagrim',
           Config::HOME_DIR() . DIRECTORY_SEPARATOR . 'keldagrim'
         );
 
         StandardOutput::write('', 'Cleaning up temporary files...');
-        if (is_dir($extraction_path)) $this->delete_dir($extraction_path);
-        if (file_exists($save_path)) $this->delete_file($save_path);
+        if (is_dir($extraction_path)) FileSystem::delete_dir($extraction_path);
+        if (file_exists($save_path)) FileSystem::delete_file($save_path);
 
         StandardOutput::write('', 'Update completed successfully.');
         StandardOutput::write('', "v {$downloaded_version}");
         StandardOutput::write('', 'Please check that all files were properly updated.');
 
         break;
-    }
-  }
-
-  private function delete_file(string $path): void
-  {
-    if (!is_link($path) && !is_file($path))
-      throw new ConsoleException('File deletion failed. Invalid file path: ' . $path);
-
-    if (!unlink($path)) {
-      $last_error = error_get_last();
-      $error_message = !empty($last_error) ? $last_error['message'] : 'Unkown system error?';
-      throw new ConsoleException("Failed to delete \"{$path}\": {$error_message}");
-    }
-  }
-
-  private function delete_dir(string $path): void
-  {
-    if (!is_dir($path))
-      throw new ConsoleException('Directory deletion failed. Directory does not exist: ' . $path);
-
-    $files = scandir($path);
-    if ($files === false)
-      throw new ConsoleException('Failed to scan directory: ' . $path);
-
-    $files = array_diff($files, ['.', '..']);
-    foreach ($files as $file) {
-      $file_path = $path . DIRECTORY_SEPARATOR . $file;
-
-      if (is_link($file_path) || is_file($file_path)) {
-        $this->delete_file($file_path);
-      } elseif (is_dir($file_path)) {
-        $this->delete_dir($file_path);
-      }
-    }
-
-    if (!rmdir($path)) {
-      $last_error = error_get_last();
-      $error_message = !empty($last_error) ? $last_error['message'] : 'Unkown OS-level error?';
-      throw new ConsoleException("Directory \"{$path}\" deletion failed: {$error_message}");
-    }
-  }
-
-  private function copy_dir(string $source, string $destination, array $exclude = []): void
-  {
-    if (!is_dir($source))
-      throw new ConsoleException('Unable to find directory: ' . $source);
-    if (!is_dir($destination)) mkdir($destination, 0755, true);
-
-    $directory = opendir($source);
-    while (($file = readdir($directory)) !== false) {
-      if ($file === '.' || $file === '..') continue;
-
-      $source_file = $source . DIRECTORY_SEPARATOR . $file;
-      $destination_file = $destination . DIRECTORY_SEPARATOR . $file;
-
-      $relative_path = ltrim(str_replace(Config::HOME_DIR(), '', $destination_file), DIRECTORY_SEPARATOR);
-      if (in_array($relative_path, $exclude)) continue;
-
-      if (is_dir($source_file)) {
-        $this->copy_dir($source_file, $destination_file, $exclude);
-      } else {
-        if (!copy($source_file, $destination_file)) {
-          $last_error = error_get_last();
-          $error_message = !empty($last_error) ? $last_error['message'] : 'Unknown system error?';
-          throw new ConsoleException("Failed to copy \"{$source_file}\": {$error_message}");
-        }
-      }
-    }
-
-    closedir($directory);
-  }
-
-  private function find_file_dir(string $directory, string $filename, array $exclude = []): ?string
-  {
-    $directory_iterator = new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS);
-    $filter_iterator = new RecursiveCallbackFilterIterator(
-      $directory_iterator,
-      function ($file, $key, $iterator) use ($exclude) {
-        if ($file->isDir() && in_array($file->getFilename(), $exclude))
-          return false;
-
-        return true;
-      }
-    );
-
-    $iterator = new RecursiveIteratorIterator($filter_iterator);
-    foreach ($iterator as $file) {
-      if ($file->getFilename() !== $filename) continue;
-      return dirname($file->getPathname()) . DIRECTORY_SEPARATOR;
-    }
-
-    return null;
-  }
-
-  private function sync_delete_removed_files(string $source, string $destination, array $exclude = []): void
-  {
-    if (!is_dir($destination)) return;
-
-    $directory = opendir($destination);
-    while (($file = readdir($directory)) !== false) {
-      if ($file === '.' || $file === '..') continue;
-
-      $destination_file = $destination . DIRECTORY_SEPARATOR . $file;
-      $source_file = $source . DIRECTORY_SEPARATOR . $file;
-
-      $relative_path = ltrim(str_replace(Config::HOME_DIR(), '', $destination_file), DIRECTORY_SEPARATOR);
-      if (in_array($relative_path, $exclude)) continue;
-
-      if (is_dir($destination_file)) {
-        if (!is_dir($source_file)) {
-          StandardOutput::write('', 'Removing obsolete directory: ' . $relative_path);
-          $this->delete_dir($destination_file);
-        } else {
-          $this->sync_delete_removed_files($source_file, $destination_file, $exclude);
-        }
-      } else {
-        if (!file_exists($source_file)) {
-          StandardOutput::write('', 'Removing obsolete file:' . $relative_path);
-          $this->delete_file($destination_file);
-        }
-      }
     }
   }
 }
