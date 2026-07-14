@@ -12,8 +12,12 @@ class Config
   public const CORE_DIR = 'core';
   public const CONFIG_DIR = 'config';
   public const PUBLIC_DIR = 'public';
+  public const DATABASE_DIR = 'database';
+  public const MIGRATION_DIR = 'migrations';
+  public const SEED_DIR = 'seeds';
 
   public const APP_CONFIG_FILE = 'app.php';
+  public const DATABASE_CONFIG_FILE = 'database.php';
   public const ROUTES_CONFIG_FILE = 'routes.php';
   public const SERVER_CONFIG_FILE = 'server.php';
   public const INDEX_FILE = 'index.php';
@@ -59,7 +63,7 @@ class Config
     $request_scheme = ($force_https === true) ? 'https' : ($_SERVER['REQUEST_SCHEME'] ?? 'http');
     $http_host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
-    if (php_sapi_name() === 'cli-server') { 
+    if (\PHP_SAPI === 'cli-server') { 
       self::$HOME_URL = $request_scheme . '://' . $http_host; 
       return; 
     }
