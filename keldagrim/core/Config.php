@@ -3,6 +3,7 @@
 namespace Keldagrim\Core;
 
 use Keldagrim\Throwable\Exception\Config\ConfigException;
+use Keldagrim\Support\Path;
 
 class Config
 {
@@ -122,8 +123,7 @@ class Config
 
   private function load_application_config(): void
   {
-    $application_config = self::HOME_DIR() . DIRECTORY_SEPARATOR . self::CONFIG_DIR .
-      DIRECTORY_SEPARATOR . self::APP_CONFIG_FILE;
+    $application_config = Path::config(DIRECTORY_SEPARATOR . self::APP_CONFIG_FILE);
     if (!file_exists($application_config)) throw new ConfigException(self::APP_CONFIG_FILE . ' is missing.');
 
     self::$settings[basename(self::APP_CONFIG_FILE, '.php')] = include($application_config);
@@ -131,9 +131,7 @@ class Config
 
   private function load_other_config(): void
   {
-    $config_files = glob(
-      self::HOME_DIR() . DIRECTORY_SEPARATOR . self::CONFIG_DIR . DIRECTORY_SEPARATOR . '*.php'
-    );
+    $config_files = glob(Path::config() . DIRECTORY_SEPARATOR . '*.php');
     if ($config_files === false) return;
 
     foreach ($config_files as $config_file) {
@@ -142,7 +140,8 @@ class Config
 
       if (
         $base_name === self::APP_CONFIG_FILE ||
-        $base_name === self::ROUTES_CONFIG_FILE
+        $base_name === self::ROUTES_CONFIG_FILE ||
+        $base_name === self::DATABASE_CONFIG_FILE
       ) continue;
 
       $file_content = include($config_file);
@@ -174,6 +173,20 @@ class Config
 
     return $data;
   }
+
+  public static function database(string $key, mixed $default = null): mixed 
+  {
+    $segments = explode('.', $key);
+    $data = require_once Path::config(DIRECTORY_SEPARATOR .'database.php');
+
+    foreach ($segments as $segment) {
+      if (!isset($data[$segment])) return $default;
+
+      $data = $data[$segment];
+    }
+
+    return $data;
+  } 
 
   public static function HOME_DIR(): string
   {

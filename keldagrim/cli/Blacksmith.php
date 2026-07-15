@@ -6,7 +6,8 @@ use Keldagrim\Throwable\ErrorHandler;
 use Keldagrim\Core\Config;
 use Keldagrim\Throwable\Exception\CLI\ConsoleException;
 use Keldagrim\CLI\OptionsParser;
-use Keldagrim\Support\Paths;
+use Keldagrim\Support\Path;
+use Keldagrim\Support\FileSystem;
 
 final class Blacksmith {
   public function __construct() {
@@ -60,22 +61,26 @@ final class Blacksmith {
       case 'migration':
 
         $connection = $opts->get('connection');
-        if (empty($connection) || !preg_match('/^[a-zA-Z_]+$/', $connection)) {
+        if (empty($connection) || !preg_match('/^[a-zA-Z_-]+$/', $connection)) {
           StandardOutput::write('', 'blacksmith:');
           StandardOutput::write('', 'A valid "--connection" option is required.');
           exit(1);
         }       
 
-        /* TODO: check Config::database("connection.{$connection}"); */
+        $db_connection = Config::database("connection.{$connection}");
+        if ($db_connection === null) {
+          StandardOutput::write('', 'blacksmith:');
+          StandardOutput::write('', 'Database connection not found in database config file.');
+          exit(1);
+        }
 
         $date = new \DateTimeImmutable;
         $stamp = $date->format('YmdHisv');
-        $filename = Paths::database(
-          Config::MIGRATION_DIR . DIRECTORY_SEPARATOR . $connection . DIRECTORY_SEPARATOR .
-          $stamp . '_' . $file_name . '.sql'
-        );
+        $migration_dir = Config::MIGRATION_DIR . DIRECTORY_SEPARATOR . $connection . DIRECTORY_SEPARATOR;
+        $filename = $stamp . '_' . $file_name . '.sql';
 
-var_dump($filename);
+        FileSystem::create_dir(Path::database($migration_dir));
+        FileSystem::write_file(Path::database($migration_dir . $filename));
         break;
     }
   }
