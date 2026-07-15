@@ -3,10 +3,17 @@
 namespace Keldagrim\Support;
 
 use Keldagrim\Core\Config;
-use Keldagrim\Throwable\Exception\Paths\PathsException;
+use Keldagrim\Throwable\Exception\Path\PathException;
 
-final class Paths {
+final class Path {
   private function __construct() {}
+
+  public static function root(string $path = ''): string {
+    return self::resolve(
+      Config::HOME_DIR(),
+      $path
+    );
+  }
 
   public static function database(string $path = ''): string {
     return self::resolve(
@@ -59,6 +66,6 @@ final class Paths {
   private static function assert_inside(string $base, string $path): void {
     $base = rtrim($base, DIRECTORY_SEPARATOR);
     if ($path !== $base && !str_starts_with($path, $base . DIRECTORY_SEPARATOR))
-      throw new PathsException("Path is outside allowed directory: {$path}");
+      throw new PathException("Path is outside allowed directory: {$path}");
   }
 }

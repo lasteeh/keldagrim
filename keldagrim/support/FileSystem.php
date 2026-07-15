@@ -132,4 +132,42 @@ final class FileSystem {
       }
     }
   }
+
+  public static function write_file(string $path, string $content = ''): void {
+    $safe_path = $path;
+    $app_root = Path::root();
+
+    if (str_starts_with($path, $app_root)) {
+      $safe_path = substr($path, strlen($app_root));
+      $safe_path = ltrim($safe_path, DIRECTORY_SEPARATOR);
+      $safe_path = DIRECTORY_SEPARATOR . $safe_path;
+    }
+
+    if (is_file($path)) throw new FileSystemException("File already exists: {$safe_path}");
+
+    $file = fopen($path, 'w');
+    fwrite($file, $content);
+    fclose($file);
+
+    if (!is_file($path)) throw new FileSystemException("Failed to create file: {$safe_path}");
+    StandardOutput::write('', "File created successfully: {$safe_path}");
+  }
+
+  public static function create_dir(string $path): void {
+    $safe_path = $path;
+    $app_root = Path::root();
+
+    if (str_starts_with($path, $app_root)) {
+      $safe_path = substr($path, strlen($app_root));
+      $safe_path = ltrim($safe_path, DIRECTORY_SEPARATOR);
+      $safe_path = DIRECTORY_SEPARATOR . $safe_path;
+    }
+
+    if (!is_dir($path)) {
+      if (!mkdir($path, 0777, true))
+        throw new FileSystemException("Failed to create directory: {$safe_path}");
+
+      StandardOutput::write('', "Directory created successfully: {$safe_path}");
+    }
+  }
 }
