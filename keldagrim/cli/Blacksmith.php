@@ -30,6 +30,7 @@ final class Blacksmith {
   }
 
   private function forge(OptionsParser $opts): void {
+    $errors = [];
     $type = $opts->get('type');
     $valid_types = [
       'migration',
@@ -38,39 +39,40 @@ final class Blacksmith {
       'view',
     ];
 
-    if (empty($type) || !in_array($type, $valid_types, true)) {
-      StandardOutput::write('', 'blacksmith:');
-      StandardOutput::write('', 'A valid "--type" option is required.');
-      exit(1);
-    }
+    if (empty($type) || !in_array($type, $valid_types, true)) 
+      $errors[] = 'A valid "--type" option is required.';
 
     $file_name = $opts->get('name');
-    if (empty($file_name)) {
-      StandardOutput::write('', 'blacksmith:');
-      StandardOutput::write('', 'A valid "--name" option is required.');
-      exit(1);
+    if (empty($file_name)) $errors[] = 'A valid "--name" option is required.';
+
+    if (!empty($file_name)) {
+      if (!preg_match('/^[a-zA-Z_]+$/', $file_name)) 
+        $errors[] = 'Invalid "--name". Only letters and underscores are allowed.';
     }
 
-    if (!preg_match('/^[a-zA-Z_]+$/', $file_name)) {
-      StandardOutput::write('', 'blacksmith:');
-      StandardOutput::write('', 'Invalid "--name". Only letters and underscores are allowed.');
+    if (!empty($errors)) {
+      StandardOutput::write('', "blacksmith:forge");
+      foreach ($errors as $error) StandardOutput::write('', $error);
       exit(1);
     }
     
     switch ($type) {
       case 'migration':
+        $errors = [];
 
         $connection = $opts->get('connection');
-        if (empty($connection) || !preg_match('/^[a-zA-Z_-]+$/', $connection)) {
-          StandardOutput::write('', 'blacksmith:');
-          StandardOutput::write('', 'A valid "--connection" option is required.');
-          exit(1);
-        }       
+        if (empty($connection) || !preg_match('/^[a-zA-Z_-]+$/', $connection)) 
+          $errors[] ='A valid "--connection" option is required.'; 
 
-        $db_connection = Config::database("connection.{$connection}");
-        if ($db_connection === null) {
-          StandardOutput::write('', 'blacksmith:');
-          StandardOutput::write('', 'Database connection not found in database config file.');
+        if (!empty($connection)) {
+          $db_connection = Config::database("connection.{$connection}");
+          if ($db_connection === null) 
+            $errors[] = 'Database connection not found in database config file.';
+        }
+
+        if (!empty($errors)) {
+          StandardOutput::write('', "blacksmith:forge:{$type}");
+          foreach ($errors as $error) StandardOutput::write('', $error);
           exit(1);
         }
 
