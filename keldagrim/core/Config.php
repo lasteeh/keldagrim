@@ -181,7 +181,6 @@ class Config
 
     foreach ($segments as $segment) {
       if (!isset($data[$segment])) return $default;
-
       $data = $data[$segment];
     }
 
