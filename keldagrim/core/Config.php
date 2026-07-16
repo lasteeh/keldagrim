@@ -27,6 +27,7 @@ class Config
   private static string $HOME_URL;
 
   private static array $settings = [];
+  private static ?array $database = null;
 
   private function __construct()
   {
@@ -176,8 +177,8 @@ class Config
 
   public static function database(string $key, mixed $default = null): mixed 
   {
+    $data = self::$database ?? require Path::config(DIRECTORY_SEPARATOR .'database.php');
     $segments = explode('.', $key);
-    $data = require_once Path::config(DIRECTORY_SEPARATOR .'database.php');
 
     foreach ($segments as $segment) {
       if (!isset($data[$segment])) return $default;

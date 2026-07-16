@@ -12,6 +12,7 @@
 !/public/index.php
 /app/*
 /database/*
+/tests/*
 .htaccess
 
 # this is for file storage
