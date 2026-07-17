@@ -173,4 +173,6 @@ final class ActionView
   private function script(string $path, string $ext = 'js'): string {
     return rtrim(Config::HOME_URL(), '/') . '/assets/js/' . ltrim($path, '/') . '.' . $ext;
   }
+
+  private function flash(?string $type = null): array { return Flash::get($type); }
 }

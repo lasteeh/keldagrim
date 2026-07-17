@@ -6,6 +6,7 @@ use Keldagrim\Throwable\Exception\Controller\ActionControllerException;
 use Keldagrim\Throwable\Exception\Controller\ActionNotFoundException;
 use Keldagrim\Throwable\Exception\Controller\UnsafeRedirectException;
 use Keldagrim\Core\Request;
+use Keldagrim\Core\Flash;
 use Keldagrim\Core\Response\HTMLResponse;
 use Keldagrim\Core\Response\JSONResponse;
 use Keldagrim\Core\Response\RedirectResponse;
@@ -75,14 +76,10 @@ abstract class ActionController
       }
     }
 
-    /* TODO: implement clear flash */
-    /* $this->clear_flash(); */
+    Flash::sweep();
 
     if (empty($response)) return;
-    if ($response instanceof Response) {
-      $response->send();
-      return;
-    } // wip if return $response->send() produce error and shutdown, FIX
+    if ($response instanceof Response) { $response->send(); return; }
   }
 
   private function filter_should_skip(array $skip_filters, string $filter, string $method): bool
@@ -185,12 +182,7 @@ abstract class ActionController
       $view = strtolower($view);
     }
 
-    /* TODO: implement setting flashes  */
-    /* if (!empty($flash)) { */
-    /*   foreach ($flash as $type => $value) { */
-    /*     $this->flash($type, $value); */
-    /*   } */
-    /* } */
+    foreach ($flash as $type => $message) Flash::now($type, $message);
 
     $action_view = new ActionView($view, $with, $layout, 'html');
     $html = $action_view->render();
@@ -231,12 +223,7 @@ abstract class ActionController
       $full_path = $path;
     }
 
-    /* TODO: implement setting flashes  */
-    /* if (!empty($flash)) { */
-    /*   foreach ($flash as $type => $value) { */
-    /*     $this->flash($type, $value); */
-    /*   } */
-    /* } */   
+    foreach ($flash as $type => $message) Flash::set($type, $message);
     
     return new RedirectResponse($full_path, $status);
   }
