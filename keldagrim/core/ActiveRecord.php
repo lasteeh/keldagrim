@@ -325,10 +325,17 @@ abstract class ActiveRecord {
         break;
 
       case 'uniqueness':
-        // TODO: implement find_by - wire in when the query layer exist
-        throw new ActiveRecordException(
-          static::class . ": 'uniqueness' validation requires the query layer (not yet implemented)."
-        );
+        if ($options !== true || $blank) break;
+
+        $match = static::find_by([$attribute => $value]);
+        if ($match === null) break;
+
+        $pk = static::primary_key();
+        if ($this->exists && is_string($pk) 
+            && ($this->original[$pk] ?? null) === ($match->attributes[$pk] ?? null))
+          break;
+
+        $this->add_error('has already been taken', $attribute);
         break;
 
       default:
@@ -605,5 +612,116 @@ abstract class ActiveRecord {
 
   private function sync_saved(): void {
     $this->original = $this->attributes;
+  }
+
+  final public function destroy(): bool {
+    if (!$this->exists) { $this->add_error('Record does not exist.'); return false; }
+    
+    $pk = static::primary_key();
+    if (!is_string($pk))
+      throw new ActiveRecordException(
+        static::class . ": destroy() requires a single-column primary key."
+      );
+
+    $pk_value = $this->original[$pk] 
+      ?? throw new ActiveRecordException(static::class . ": cannot destroy without a '{$pk}' value.");
+    
+    if (!$this->run_callbacks('before_destroy')) return false;
+    
+    $table = static::table_name();
+    $stmt = static::db()->prepare("DELETE FROM {$table} WHERE {$pk} = :pk");
+    $stmt->execute([':pk' => $pk_value]);
+
+    $this->exists = false;
+    if (!$this->run_callbacks('after_destroy')) return false;
+    return true;
+  }
+
+  final public static function fetch_by(
+    array $conditions = [],
+    array $order = [],
+    ?int $limit = null,
+    ?int $offset = null,
+  ):array {
+    new static();
+
+    $where = '';
+    $binds = [];
+    if ($conditions !== [])
+      [$where, $binds] = static::build_where($conditions);
+
+    $sql = 'SELECT ' . implode(', ', static::persisted_attributes())
+      . ' FROM ' . static::table_name()
+      . ($where === '' ? '' : " {$where}")
+      . static::build_order($order)
+      . static::build_limit($limit, $offset);
+
+    $stmt = static::db()->prepare($sql);
+    $stmt->execute($binds);
+
+    $records = [];
+    while (($row = $stmt->fetch()) !== false) $records[] = static::hydrate($row);
+    return $records;
+  }
+
+  final public static function all(array $order = []): array {
+    return static::fetch_by([], $order);
+  }
+
+  final public static function count(array $conditions = []): int {
+    new static();
+
+    $where = '';
+    $binds = [];
+    
+    if ($conditions !== [])
+      [$where, $binds] = static::build_where($conditions);
+
+    $stmt = static::db()->prepare(
+      'SELECT COUNT(*) FROM ' . static::table_name() . ($where === '' ? '' : " {$where}")
+    );
+    $stmt->execute($binds);
+    
+    return (int) $stmt->fetchColumn();
+  }
+
+  private static function build_order(array $order): string {
+    if ($order === []) return '';
+
+    $schema = self::$schema_cache[static::class];
+    $parts = [];
+
+    foreach ($order as $column => $direction) {
+      if (!is_string($column) || !isset($schema[$column]) || !$schema[$column]['persisted'])
+        throw new ActiveRecordException(
+          static::class . ': invalid order column ' . var_export($column, true) . '.'
+       );
+
+      $direction = strtolower((string) $direction);
+      if ($direction !== 'asc' && $direction !== 'desc')
+        throw new ActiveRecordException(
+          static::class . ": order direction for '{$column}' must be 'asc' or 'desc'."
+        );
+
+      $parts[] = "{$column} " . strtoupper($direction);
+    }
+    
+    return ' ORDER BY ' . implode(', ', $parts);
+  }
+
+  private static function build_limit(?int $limit, ?int $offset): string {
+    if ($limit === null) {
+      if ($offset !== null)
+        throw new ActiveRecordException(static::class . ": offset requires a limit.");
+      return '';
+    }
+
+    if ($limit < 1)
+      throw new ActiveRecordException(static::class . ": limit must be at least 1.");
+
+    if ($offset !== null && $offset < 0)
+      throw new ActiveRecordException(static::class . ": offset must not be negative.");
+
+    return ' LIMIT ' . $limit . ($offset !== null ? ' OFFSET ' . $offset : '');
   }
 }
