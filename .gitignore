@@ -17,8 +17,8 @@
 
 # this is for file storage
 # this should be backed up elsewhere and not in git
-/storage
-/logs
+/storage/*
+/logs/*
 
 # these are dependencies
 # which should be managed 
