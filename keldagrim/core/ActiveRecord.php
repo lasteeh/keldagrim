@@ -9,6 +9,13 @@ abstract class ActiveRecord {
   protected static $TABLE = '';
   protected static $PRIMARY_KEY = 'id';
 
+  /**
+   * Attributes that exist on the model (validated, castable, dirty-tracked)
+   * but are never written to or read from the database.
+   * e.g. ['password_confirmation', 'terms_accepted']
+   */
+  protected static $TRANSIENT = [];
+
   protected static $skip_before_validate = [];
   protected static $before_validate = [];
   protected static $skip_after_validate = [];
@@ -42,11 +49,13 @@ abstract class ActiveRecord {
   private array $schema = [];
   private array $attributes = [];
   private array $original = [];
+  private array $errors = [];
 
   private static array $resolved_callbacks = [];
   private static array $schema_cache = [];
 
   private const CASTABLE_TYPES = ['int', 'float', 'string', 'bool'];
+  public const BASE = '_base';
 
   public function __construct(array $attributes = []) {
 
@@ -69,7 +78,7 @@ abstract class ActiveRecord {
         $type = $prop->getType();
 
         if ($type === null) {
-          $schema[$prop->getName()] = ['type' => null, 'nullable' => true];
+          $schema[$prop->getName()] = ['type' => null, 'nullable' => true, 'persisted' => true];
           continue;
         }
 
@@ -82,7 +91,18 @@ abstract class ActiveRecord {
         $schema[$prop->getName()] = [
           'type' => $type->getName(),
           'nullable' => $type->allowsNull(),
+          'persisted' => true,
         ];
+      }
+
+      $transient = static::collect_list('TRANSIENT');
+      foreach ($transient as $name) {
+        if (!is_string($name) || !isset($schema[$name]))
+          throw new ActiveRecordException(
+            static::class . ": \$TRANSIENT entry " . var_export($name, true) .
+            " is not a declared attribute."
+          );
+        $schema[$name]['persisted'] = false;
       }
 
       self::$schema_cache[static::class] = $schema;
@@ -153,6 +173,12 @@ abstract class ActiveRecord {
       );
   }
 
+  final public static function persisted_attributes(): array {
+    $schema = self::$schema_cache[static::class] 
+      ?? throw new ActiveRecordException(static::class . ": schema not initialized; construct an instance first.");
+    return array_keys(array_filter($schema, fn($meta) => $meta['persisted']));
+  }
+
   public function __set(string $name, $value): void {
     $this->assert_attribute($name);
     $this->attributes[$name] = $this->cast_attribute($name, $value);
@@ -197,6 +223,106 @@ abstract class ActiveRecord {
       if ($this->{$callback}() === false) return false;
     
     return true;
+  }
+
+  final public function add_error(string $message, string $attribute = self::BASE): void {
+    $this->errors[$attribute][] = $message;
+  }
+
+  final public function errors(?string $attribute = null): array {
+    if ($attribute !== null) return $this->errors[$attribute] ?? [];
+    return $this->errors;
+  }
+
+  final public function has_errors(?string $attribute = null): bool {
+    if ($attribute !== null) return !empty($this->errors[$attribute]);
+    return $this->errors !== [];
+  }
+
+  final public function error_messages(): array {
+    $out = [];
+    foreach ($this->errors as $attribute => $messages) {
+      foreach ($messages as $message)
+        $out[] = $attribute === self::BASE ? $message : "{$attribute} {$message}";
+    }
+    return $out;
+  }
+
+  final protected function clear_errors(): void { $this->errors = []; }
+
+  final public function validate(?array $only = null): bool {
+    $this->clear_errors();
+
+    foreach ($this->validations as $attribute => $rules) {
+      if ($only !== null && !in_array($attribute, $only, true)) continue;
+      $this->assert_attribute($attribute);
+      foreach ($rules as $rule => $options) {
+        $this->apply_rule($attribute, $rule, $options);
+      }
+    }
+
+    if (!$this->run_callbacks('validate')) return false;
+    return !$this->has_errors();
+  }
+
+  private function apply_rule(string $attribute, string $rule, mixed $options): void {
+    $value = $this->attributes[$attribute] ?? null;
+    $blank = $value === null || (is_string($value) && trim($value) === '');
+
+    switch ($rule) {
+      case 'presence':
+        if ($options === true && $blank) $this->add_error("can't be blank", $attribute);
+        break;
+
+      case 'length':
+        if ($blank) break;
+        $len = mb_strlen((string) $value);
+        if (isset($options['minimum']) && $len < $options['minimum'])
+          $this->add_error("is too short (minimum {$options['minimum']} characters)", $attribute);
+        if (isset($options['maximum']) && $len > $options['maximum'])
+          $this->add_error("is too long (maximum {$options['maximum']} characters)", $attribute);
+        break;
+
+      case 'numericality':
+        if ($blank) break;
+        if (!is_numeric($value)) {
+          $this->add_error('is not a number', $attribute);
+          break;
+        }
+        if (($options['only_integer'] ?? false) && !preg_match('/^-?\d+$/', (string) $value))
+          $this->add_error('must be an integer', $attribute);
+        if (isset($options['greater_than']) && !($value > $options['greater_than']))
+          $this->add_error("must be greater than {$options['greater_than']}", $attribute);
+        if (isset($options['less_than']) && !($value < $options['less_than']))
+          $this->add_error("must be less than {$options['less_than']}", $attribute);
+        break;
+
+      case 'format':
+        if ($blank) break;
+        if (!is_string($value) || !preg_match($options['with'], $value))
+          $this->add_error($options['message'] ?? 'is invalid', $attribute);
+        break;
+
+      case 'confirmation':
+        if ($options !== true || $blank) break;
+        $confirm = "{$attribute}_confirmation";
+        $confirm_value = isset($this->schema[$confirm]) ? ($this->attributes[$confirm] ?? null) : null;
+        if ($value !== $confirm_value)
+          $this->add_error("doesn't match confirmation", $attribute);
+        break;
+
+      case 'uniqueness':
+        // TODO: implement find_by - wire in when the query layer exist
+        throw new ActiveRecordException(
+          static::class . ": 'uniqueness' validation requires the query layer (not yet implemented)."
+        );
+        break;
+
+      default:
+        throw new ActiveRecordException(
+          static::class . ": unknown validation rule '{$rule}' on '{$attribute}'."
+        );     
+    }
   }
 
   private static function resolve_callbacks(string $event): array {
