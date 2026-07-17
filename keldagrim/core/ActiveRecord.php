@@ -50,6 +50,7 @@ abstract class ActiveRecord {
   private array $attributes = [];
   private array $original = [];
   private array $errors = [];
+  private bool $exists = false;
 
   private static array $resolved_callbacks = [];
   private static array $schema_cache = [];
@@ -117,6 +118,18 @@ abstract class ActiveRecord {
       $this->attributes[$name] = $this->cast_attribute($name, $value);
     }
     $this->original = $this->attributes;
+  }
+
+  final public function exists(): bool { return $this->exists; }
+
+  final protected static function db(): \PDO {
+    return Database::connect(static::$CONNECTION);
+  }
+
+  final protected static function hydrate(array $row): static {
+    $instance = new static($row);
+    $instance->exists = true;
+    return $instance;
   }
 
   private function cast_attribute(string $name, mixed $value): mixed {
@@ -432,5 +445,165 @@ abstract class ActiveRecord {
     }
 
     return static::$PRIMARY_KEY;
+  }
+
+  final public static function find(int|string $id): ?static {
+    $pk = static::primary_key();
+    if (!is_string($pk))
+      throw new ActiveRecordException(
+        static::class . ": find() requires a single-column primary key. use find_by() instead."
+      );
+    return static::find_by([$pk => $id]);
+  }
+
+  final public static function find_by(array $conditions): ?static {
+    new static();
+
+    [$where, $binds] = static::build_where($conditions);
+    $table = static::table_name();
+
+    $columns = implode(', ', static::persisted_attributes());   
+    $stmt = static::db()->prepare("SELECT {$columns} FROM {$table} {$where} LIMIT 1");
+    $stmt->execute($binds);
+    $row = $stmt->fetch(); 
+
+    return $row === false ? null : static::hydrate($row);
+  }
+
+  /**
+   * Build "WHERE a = :w0 AND b IS NULL" from ['a' => 1, 'b' => null].
+   * Keys are validated against persisted attributes; values are parameterized.
+   * @return array{string, array<string, mixed>}
+   */
+  private static function build_where(array $conditions): array {
+    if ($conditions === [])
+      throw new ActiveRecordException(
+        static::class . ": find_by requires at least one condition"
+      );
+
+    $schema = self::$schema_cache[static::class];
+    $parts = [];
+    $binds = [];
+    $i = 0;
+
+    foreach ($conditions as $column => $value) {
+      if (!is_string($column) || !isset($schema[$column]) || !$schema[$column]['persisted'])
+        throw new ActiveRecordException(
+          static::class . ': invalid condition column ' . var_export($column, true) . '.'
+        );
+
+      if ($value === null) { $parts[] = "{$column} IS NULL"; continue; }
+      if (!is_scalar($value))
+        throw new ActiveRecordException(
+          static::class . ": condition '{$column}' must be scalar or null, got " . get_debug_type($value) . '.'
+        );
+
+      $placeholder = ':w' . $i++;
+      $parts[] = "{$column} = {$placeholder}";
+      $binds[$placeholder] = is_bool($value) ? (int) $value : $value;
+    }
+
+    return ['WHERE ' . implode(' AND ', $parts), $binds];
+  }
+
+  final public function save(): bool {
+    if (!$this->run_callbacks('before_validate')) return false;
+    if (!$this->validate()) return false;
+    if (!$this->run_callbacks('after_validate')) return false;
+
+    if (!$this->run_callbacks('before_save')) return false;
+
+    $is_update = $this->exists;
+
+    if ($is_update) {
+      if (!$this->run_callbacks('before_update')) return false;
+      if (!$this->perform_update()) return true;
+      if (!$this->run_callbacks('after_update')) return false;
+    } else {
+      if (!$this->run_callbacks('before_create')) return false;
+      $this->perform_insert();
+      if (!$this->run_callbacks('after_create')) return false;
+    }
+
+    if (!$this->run_callbacks('after_save')) return false;
+    return true;
+  }
+
+  private function perform_update(): bool {
+    $pk = static::primary_key();
+    if (!is_string($pk))
+      throw new ActiveRecordException(
+        static::class . ": save() on existing records require a single-column primary key."
+      );
+
+    $pk_value = $this->original[$pk]
+      ?? throw new ActiveRecordException(static::class . ": cannot update without a '{$pk}' value.");
+    
+    $dirty = [];
+    foreach (static::persisted_attributes() as $name) {
+      if ($name === $pk) continue;
+      if (($this->attributes[$name] ?? null) !== ($this->original[$name] ?? null))
+        $dirty[$name] = $this->attributes[$name] ?? null;
+    }
+    if ($dirty === []) return false;
+
+    $sets = [];
+    $binds = [':pk' => $pk_value];
+    $i = 0;
+
+    foreach ($dirty as $column => $value) {
+      $ph = ':s' . $i++;
+      $sets[] = "{$column} = {$ph}";
+      $binds[$ph] = is_bool($value) ? (int) $value : $value;
+    }
+
+    $table = static::table_name();
+    $stmt = static::db()->prepare(
+      "UPDATE {$table} SET " . implode(', ', $sets) . " WHERE {$pk} = :pk"
+    );
+    $stmt->execute($binds);
+
+    $this->sync_saved();
+    return true;
+  }
+
+  private function perform_insert(): void {
+    $columns = [];
+    $placeholders = [];
+    $binds = [];
+    $i = 0;
+    
+    foreach (static::persisted_attributes() as $name) {
+      if (!array_key_exists($name, $this->attributes)) continue;
+      $columns[] = $name;
+      $ph = ':i' . $i++;
+      $placeholders[] = $ph;
+      $value = $this->attributes[$name];
+      $binds[$ph] = is_bool($value) ? (int) $value : $value;
+    } 
+
+    if ($columns === []) 
+      throw new ActiveRecordException(static::class . ": nothing to insert; no attribute values set.");
+
+    $table = static::table_name();
+    $stmt = static::db()->prepare(
+      "INSERT INTO {$table} (" . implode(', ', $columns) . ') VALUES (' . implode(', ', $placeholders) . ')'
+    );
+
+    $stmt->execute($binds);
+
+    $pk = static::primary_key();
+    if (is_string($pk) && !isset($this->attributes[$pk])) {
+      $id = static::db()->lastInsertId();
+      if ($id !== false && $id !== '' && $id !== '0')
+        $this->attributes[$pk] = $this->cast_attribute($pk, $id);
+    }
+    
+    $this->exists = true;
+    $this->sync_saved();
+  }
+
+  private function sync_saved(): void {
+    $this->original = $this->attributes;
   }
 }
