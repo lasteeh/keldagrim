@@ -65,8 +65,8 @@ final class Blacksmith {
           $errors[] ='A valid "--connection" option is required.'; 
 
         if (!empty($connection)) {
-          $db_connection = Config::database("connection.{$connection}");
-          if ($db_connection === null) 
+          $db_connection = Config::database("connections.{$connection}");
+          if (empty($db_connection)) 
             $errors[] = 'Database connection not found in database config file.';
         }
 

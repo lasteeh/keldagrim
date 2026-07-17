@@ -31,10 +31,10 @@ final class Mason {
         if (empty($connection)) 
           $errors[] = 'A valid "--connection" option is required.';
 
-        $valid_connection = [];
+        $connection_config = [];
         if (!empty($connection)) {
-          $valid_connection = Config::database("connection.{$connection}");
-          if (empty($valid_connection))
+          $connection_config = Config::database("connections.{$connection}");
+          if (empty($connection_config))
             $errors[] = 'Database connection is not found or empty in database config file.';
         }
 
@@ -46,7 +46,7 @@ final class Mason {
 
         /* connect to db */
         $migrations_table = 'keldagrim_migrations';
-        $db = Database::connect($valid_connection);
+        $db = Database::connect($connection);
         $driver = $db->getAttribute(\PDO::ATTR_DRIVER_NAME);
 
         if ($driver === 'pgsql') {

@@ -177,7 +177,10 @@ class Config
 
   public static function database(string $key, mixed $default = null): mixed 
   {
-    $data = self::$database ?? require Path::config(DIRECTORY_SEPARATOR .'database.php');
+    if (!isset(self::$database)) 
+      self::$database = require Path::config(DIRECTORY_SEPARATOR .'database.php'); 
+
+    $data = self::$database;
     $segments = explode('.', $key);
 
     foreach ($segments as $segment) {

@@ -245,7 +245,7 @@ abstract class ActiveRecord {
     if (!is_string(static::$CONNECTION) || empty(static::$CONNECTION))
       throw new ActiveRecordException(static::class . ': Please assign a valid connection.');
 
-    $connection = Config::database('connection.' . static::$CONNECTION);
+    $connection = Config::database('connections.' . static::$CONNECTION);
     if (empty($connection))
       throw new ActiveRecordException(static::class . ': Connection not found in database config.');
 
