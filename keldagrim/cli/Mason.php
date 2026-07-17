@@ -101,6 +101,24 @@ final class Mason {
 
         sort($files, SORT_STRING);
 
+        $new_migrations = [];
+        foreach ($files as $file) {
+          $name = basename($file);
+          if (isset($executed[$name])) continue;
+
+          $sql = file_get_contents($file);
+          if ($sql === false) throw new ConsoleException("Cannot read migration: {$name}");
+          if (trim($sql) === '') throw new ConsoleException("Migration file is empty: {$name}");
+
+          $new_migrations[$name] = $sql; // keep the content — no second read needed
+        }
+        $counter = count($new_migrations);
+
+        StandardOutput::write('','');
+        StandardOutput::write('',"{$counter} new migration(s) found.");
+        StandardOutput::write('','');
+        if (empty($counter)) exit;         
+
         if ($driver !== 'pgsql')
           StandardOutput::write('', 
             'Note: MySQL/MariaDB auto-commits DDL statements (CREATE/ALTER/DROP). ' . 
@@ -113,13 +131,8 @@ final class Mason {
           exit;
         }
 
-        foreach ($files as $file) {
-          $name = basename($file);
-          if (isset($executed[$name])) continue;
-
-          $sql = file_get_contents($file);
-          if ($sql === false) throw new ConsoleException("Cannot read migration: {$name}");
-
+        $counter = 0;
+        foreach ($new_migrations as $name => $sql) {
           try {
             $db->beginTransaction();
 
@@ -130,10 +143,18 @@ final class Mason {
             if ($db->inTransaction()) $db->commit();
             StandardOutput::write('',"Migrated: {$name}");
 
+            $counter++;
+
           } catch (\Throwable $e) {
             if ($db->inTransaction()) $db->rollBack();
             throw new ConsoleException("Migration {$name} failed: " . $e->getMessage(), 0, $e);
           }
+        }
+
+        if ($counter === 0) {
+            StandardOutput::write('','No new migrations.');
+        } else {
+            StandardOutput::write('',"{$counter} migration(s) successful.");
         }
 
         break;
