@@ -91,15 +91,20 @@ final class ActionView
     if (empty($this->view)) return '';
     $this->trace = $this->view;
 
+    // require, not require_once: templates produce output, so they must
+    // execute on every render. require_once returns bare `true` on any
+    // repeat include per process, silently yielding an empty body when the
+    // same view or layout renders twice in one request (e.g. batch email,
+    // or two pages sharing a layout). partial() already uses plain require.
     ob_start();
-    require_once($this->view);
+    require($this->view);
     $this->content = ob_get_clean();
 
     if (empty($this->layout)) return $this->content;
     $this->trace = $this->layout;
 
     ob_start();
-    require_once($this->layout);
+    require($this->layout);
     $this->render = ob_get_clean();
 
     return $this->render;
