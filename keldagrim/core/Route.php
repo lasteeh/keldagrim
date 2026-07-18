@@ -270,10 +270,12 @@ final class Route
       $pattern
     );
 
-    // optional: :id? excluding slashes
+    // optional: :id? excluding slashes; the preceding slash is folded
+    // into the group so /reset/:token? also matches /reset (what
+    // path() generates when the param is omitted)
     $pattern = preg_replace(
-      '/\:(\w+)\?/',
-      '(?P<$1>[^/]*)?',
+      '#/\:(\w+)\?#',
+      '(?:/(?P<$1>[^/]+))?',
       $pattern
     );
 
