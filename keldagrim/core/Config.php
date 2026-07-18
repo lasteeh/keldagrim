@@ -28,6 +28,7 @@ class Config
 
   private static array $settings = [];
   private static ?array $database = null;
+  private static ?array $app = null;
 
   private function __construct()
   {
@@ -178,9 +179,25 @@ class Config
   public static function database(string $key, mixed $default = null): mixed 
   {
     if (!isset(self::$database)) 
-      self::$database = require Path::config(DIRECTORY_SEPARATOR .'database.php'); 
+      self::$database = require Path::config(DIRECTORY_SEPARATOR . self::DATABASE_CONFIG_FILE); 
 
     $data = self::$database;
+    $segments = explode('.', $key);
+
+    foreach ($segments as $segment) {
+      if (!isset($data[$segment])) return $default;
+      $data = $data[$segment];
+    }
+
+    return $data;
+  } 
+
+  public static function app(string $key, mixed $default = null): mixed 
+  {
+    if (!isset(self::$app)) 
+      self::$app = require Path::config(DIRECTORY_SEPARATOR . self::APP_CONFIG_FILE); 
+
+    $data = self::$app;
     $segments = explode('.', $key);
 
     foreach ($segments as $segment) {
