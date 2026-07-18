@@ -27,8 +27,6 @@ class Config
   private static string $HOME_URL;
 
   private static array $settings = [];
-  private static ?array $database = null;
-  private static ?array $app = null;
 
   private function __construct()
   {
@@ -128,7 +126,11 @@ class Config
     $application_config = Path::config(DIRECTORY_SEPARATOR . self::APP_CONFIG_FILE);
     if (!file_exists($application_config)) throw new ConfigException(self::APP_CONFIG_FILE . ' is missing.');
 
-    self::$settings[basename(self::APP_CONFIG_FILE, '.php')] = include($application_config);
+    $file_content = include($application_config);
+    if (!is_array($file_content))
+      throw new ConfigException(self::APP_CONFIG_FILE . ' must return an array.');
+
+    self::$settings[basename(self::APP_CONFIG_FILE, '.php')] = $file_content;
   }
 
   private function load_other_config(): void
@@ -142,8 +144,7 @@ class Config
 
       if (
         $base_name === self::APP_CONFIG_FILE ||
-        $base_name === self::ROUTES_CONFIG_FILE ||
-        $base_name === self::DATABASE_CONFIG_FILE
+        $base_name === self::ROUTES_CONFIG_FILE
       ) continue;
 
       $file_content = include($config_file);
@@ -176,37 +177,15 @@ class Config
     return $data;
   }
 
-  public static function database(string $key, mixed $default = null): mixed 
+  public static function app(string $key, mixed $default = null): mixed
   {
-    if (!isset(self::$database)) 
-      self::$database = require Path::config(DIRECTORY_SEPARATOR . self::DATABASE_CONFIG_FILE); 
+    return self::get(basename(self::APP_CONFIG_FILE, '.php') . '.' . $key, $default);
+  }
 
-    $data = self::$database;
-    $segments = explode('.', $key);
-
-    foreach ($segments as $segment) {
-      if (!isset($data[$segment])) return $default;
-      $data = $data[$segment];
-    }
-
-    return $data;
-  } 
-
-  public static function app(string $key, mixed $default = null): mixed 
+  public static function database(string $key, mixed $default = null): mixed
   {
-    if (!isset(self::$app)) 
-      self::$app = require Path::config(DIRECTORY_SEPARATOR . self::APP_CONFIG_FILE); 
-
-    $data = self::$app;
-    $segments = explode('.', $key);
-
-    foreach ($segments as $segment) {
-      if (!isset($data[$segment])) return $default;
-      $data = $data[$segment];
-    }
-
-    return $data;
-  } 
+    return self::get(basename(self::DATABASE_CONFIG_FILE, '.php') . '.' . $key, $default);
+  }
 
   public static function HOME_DIR(): string
   {
