@@ -263,8 +263,32 @@ abstract class ActiveRecord {
 
   final protected function clear_errors(): void { $this->errors = []; }
 
+  /**
+   * Runs the full validation pipeline and returns whether the record is valid.
+   *
+   * Pipeline (mirrors Rails' `valid?` semantics):
+   *   1. clear previous errors
+   *   2. before_validate callbacks — a `false` return aborts: everything
+   *      downstream is skipped and validate() returns false
+   *   3. declarative rules from $validations (filtered by $only when given)
+   *   4. validate callbacks — custom validation logic; a `false` return
+   *      aborts before after_validate
+   *   5. after_validate callbacks — run even when rules added errors
+   *
+   * Because save() delegates to this method, validate() and save() can never
+   * disagree about validity: callback-generated defaults (uuid, slug, ...)
+   * exist on both paths.
+   *
+   * Contract notes:
+   * - before_validate callbacks must be idempotent (`$this->x ??= ...`), as
+   *   the `validate()`-then-`save()` form pattern runs them twice.
+   * - A callback that vetoes with `false` should add_error() first, otherwise
+   *   validate() returns false with an empty errors() list.
+   */
   final public function validate(?array $only = null): bool {
     $this->clear_errors();
+
+    if (!$this->run_callbacks('before_validate')) return false;
 
     foreach ($this->validations as $attribute => $rules) {
       if ($only !== null && !in_array($attribute, $only, true)) continue;
@@ -275,6 +299,8 @@ abstract class ActiveRecord {
     }
 
     if (!$this->run_callbacks('validate')) return false;
+    if (!$this->run_callbacks('after_validate')) return false;
+
     return !$this->has_errors();
   }
 
@@ -514,9 +540,10 @@ abstract class ActiveRecord {
   }
 
   final public function save(): bool {
-    if (!$this->run_callbacks('before_validate')) return false;
+    // before_validate / after_validate run inside validate() (Rails
+    // semantics), so save() and standalone validate() share one
+    // pipeline and always agree.
     if (!$this->validate()) return false;
-    if (!$this->run_callbacks('after_validate')) return false;
 
     if (!$this->run_callbacks('before_save')) return false;
 
