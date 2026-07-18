@@ -6,6 +6,7 @@ use Keldagrim\Throwable\Exception\Controller\ActionControllerException;
 use Keldagrim\Throwable\Exception\Controller\ActionNotFoundException;
 use Keldagrim\Throwable\Exception\Controller\UnsafeRedirectException;
 use Keldagrim\Core\Request;
+use Keldagrim\Core\Response;
 use Keldagrim\Core\Flash;
 use Keldagrim\Core\Response\HTMLResponse;
 use Keldagrim\Core\Response\JSONResponse;
@@ -22,6 +23,7 @@ abstract class ActionController
   protected static array $after_action = [];
 
   private Request $request;
+  private mixed $response = null;
 
   public function __construct(Request $request)
   {
@@ -33,9 +35,9 @@ abstract class ActionController
     $this->setup_filter('skip_after_action');
   }
 
-  final protected function request(): Request {
-    return $this->request;
-  }
+  final protected function request(): Request { return $this->request; }
+
+  final protected function response(): mixed { return $this->response; }
 
   final public function execute(string $method): void
   {
@@ -55,11 +57,12 @@ abstract class ActionController
         if (!method_exists($this, $before_filter))
           throw new ActionControllerException("Method [{$before_filter}] not found on [{$class}]");
 
-        $this->{$before_filter}();
+        $this->response = $this->{$before_filter}();
+        if ($this->response instanceof Response) { $this->response->send(); return; }
       }
     }
 
-    $response = $this->{$method}();
+    $this->response = $this->{$method}();
 
     $after_filters = static::$after_action;
     $skip_after_filters = static::$skip_after_action;
@@ -72,14 +75,18 @@ abstract class ActionController
         if (!method_exists($this, $after_filter))
           throw new ActionControllerException("Method [{$after_filter}] not found on [{$class}]");
 
-        $this->{$after_filter}();
+        $response = $this->{$after_filter}();
+
+        if (!empty($response)) {
+          if ($response instanceof Response) { $this->response = $response; }
+        }
       }
     }
 
     Flash::sweep();
 
-    if (empty($response)) return;
-    if ($response instanceof Response) { $response->send(); return; }
+    if (empty($this->response)) return;
+    if ($this->response instanceof Response) { $this->response->send(); return; }
   }
 
   private function filter_should_skip(array $skip_filters, string $filter, string $method): bool
