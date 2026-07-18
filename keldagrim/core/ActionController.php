@@ -58,7 +58,7 @@ abstract class ActionController
           throw new ActionControllerException("Method [{$before_filter}] not found on [{$class}]");
 
         $this->response = $this->{$before_filter}();
-        if ($this->response instanceof Response) { $this->response->send(); return; }
+        if ($this->response instanceof Response) { Flash::sweep(); $this->response->send(); return; }
       }
     }
 
