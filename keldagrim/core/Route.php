@@ -314,24 +314,19 @@ final class Route
 
   private static function extract_params(string $path): array
   {
+    // Same token grammar as fetch(): a greedy \w+ consumes the full name,
+    // then the optional ([?*]) captures the modifier. A single pass means
+    // the name can never be split by backtracking (the old three-pass
+    // version let :token? also register a phantom required param "toke").
+    preg_match_all('/:(\w+)([?*])?/', $path, $matches, PREG_SET_ORDER);
+
     $params = [];
-
-    // required: :id    
-    preg_match_all('/\:(\w+)(?!\?|\*)/', $path, $matches);
-    foreach ($matches[1] as $name) {
-      $params[$name] = 'required';
-    }
-
-    // optional: :id?
-    preg_match_all('/\:(\w+)\?/', $path, $matches);
-    foreach ($matches[1] as $name) {
-      $params[$name] = 'optional';
-    }
-
-    // wildcard: :slug*
-    preg_match_all('/\:(\w+)\*/', $path, $matches);
-    foreach ($matches[1] as $name) {
-      $params[$name] = 'wildcard';
+    foreach ($matches as $match) {
+      $params[$match[1]] = match ($match[2] ?? '') {
+        '?' => 'optional',
+        '*' => 'wildcard',
+        default => 'required',
+      };
     }
 
     return $params;
