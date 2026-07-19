@@ -5,9 +5,12 @@ namespace Keldagrim\Core;
 use Keldagrim\Throwable\Exception\View\ActionViewException;
 use Keldagrim\Throwable\Exception\View\MissingTemplateException;
 use Keldagrim\Throwable\Exception\View\UnsupportedFormatException;
+use Keldagrim\Core\Trait\CanGenerateAppPath;
 
 final class ActionView
 {
+  use CanGenerateAppPath;
+
   private const ALLOWED_FORMATS = ['html', 'xml', 'text', 'js', 'css', 'csv'];
   private string $format;
 
