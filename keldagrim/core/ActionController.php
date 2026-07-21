@@ -234,4 +234,23 @@ abstract class ActionController
     
     return new RedirectResponse($full_path, $status);
   }
+
+  final protected function return(
+    string $fallback = '/',
+    int $status = 302,
+    array $flash = [],   
+  ): RedirectResponse {
+    $referrer = $this->request?->header('Referer');
+    $target = $fallback;
+
+    if (!empty($referrer)) {
+      $referrer_host = parse_url($referrer, PHP_URL_HOST);
+      $own_host = parse_url(Config::HOME_URL(), PHP_URL_HOST);
+
+      if ($referrer_host === null || strcasecmp($referrer_host, $own_host) === 0)
+        $target = $referrer;
+    }
+  
+    return $this->redirect($target, $status, $flash);
+  }
 }
