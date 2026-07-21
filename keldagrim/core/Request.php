@@ -8,6 +8,7 @@ use Keldagrim\Throwable\Exception\Routing\RouteNotFoundException;
 final class Request
 {
   public readonly string $uri;
+  public readonly array $headers;
   public readonly string $method;
   public readonly Closure|array|null $action;
   public readonly array $route_params;
@@ -72,6 +73,8 @@ final class Request
       readfile($static_file);
       exit;
     }
+
+    $request->headers = self::capture_headers();
 
     $routes_map = Route::all([$request->method]);
     $routes = $routes_map[$request->method] ?? [];
@@ -141,5 +144,25 @@ final class Request
     http_response_code(in_array($method, ['GET', 'HEAD'], true) ? 301 : 308);
     header('Location: ' . $location);
     exit;
+  }
+
+  private static function capture_headers() {
+    $headers = [];
+
+    foreach ($_SERVER as $key => $value) {
+      if (str_starts_with($key, 'HTTP_')) {
+        $name = substr($key, 5);
+      } elseif ($key === 'CONTENT_TYPE' || $key === 'CONTENT_LENGTH') {
+        $name = $key;
+      } else { continue; }
+      
+      $headers[strtolower(str_replace('_', '-', $name))] = $value;
+    }
+
+    return $headers;
+  }
+
+  public function header(string $name, ?string $default = null): ?string {
+    return $this->headers[strtolower($name)] ?? $default;
   }
 }
